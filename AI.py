@@ -1,83 +1,159 @@
-import cv2
 import numpy as np
-import os
-import sys
 import tensorflow as tf
 
-from sklearn.model_selection import train_test_split
 
-EPOCHS = 10
-TEST_SIZE = 0.4
+EPOCHS = 5
 
 
+#Main function that compiles the loading of the data and training of the model.
 def main():
 
-    # Get image arrays and labels for all image files
-    actions, labels = load_data()
-    print(x_train)
-    print(y_train)
-    # Split data into training and testing sets
-    #labels = tf.keras.utils.to_categorical(labels)
-    #x_train, x_test, y_train, y_test = train_test_split(
-    #    np.array(actions), np.array(labels), test_size=TEST_SIZE
-    #)
+    x_train = load_data()
+    y_train = load_label()
 
     # Get a compiled neural network
-    #model = get_model()
+    model = get_model()
 
     # Fit model on training data
-    #model.fit(x_train, y_train, epochs=EPOCHS)
+    model.fit(x_train, y_train, epochs=EPOCHS)
 
+    x_test = load_test_data()
+    y_test = load_test_label()
+    
     # Evaluate neural network performance
-    #model.evaluate(x_test,  y_test, verbose=2)
+    model.evaluate(x_test,  y_test, verbose=2)
 
 
+#Function loads the sensor data.
 def load_data():
+    print("Loading Training Data . . .")
+    body_acc_x = []
+    body_acc_y = []
+    body_acc_z = []
+    body_gyr_x = []
+    body_gyr_y = []
+    body_gyr_z = []
     
-    actions = []
-    labels = []
-    with open("Dataset\\test\\X_test.txt","r") as f:
-        line = f.readline()
-        while line != "":
-            actions.append(line)
-    with open("Dataset\\test\\y_test.txt","r") as y:
-        line = f.readline()
-        print()
-    return (actions,labels)
+    with open("Dataset\\train\\Inertial Signals\\body_acc_x_train.txt", 'r') as f:
+        for row in f:
+            body_acc_x.append(row.replace("  ", " ").strip().split(" "))
 
-    def load_X(X_signals_paths):
-    X_signals = []
+    with open("Dataset\\train\\Inertial Signals\\body_acc_y_train.txt", 'r') as f:
+        for row in f:
+            body_acc_y.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\train\\Inertial Signals\\body_acc_z_train.txt", 'r') as f:
+        for row in f:
+             body_acc_z.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\train\\Inertial Signals\\body_gyro_x_train.txt", 'r') as f:
+        for row in f:
+            body_gyr_x.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\train\\Inertial Signals\\body_gyro_y_train.txt", 'r') as f:
+        for row in f:
+            body_gyr_y.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\train\\Inertial Signals\\body_gyro_z_train.txt", 'r') as f:
+        for row in f:
+            body_gyr_z.append(row.replace("  ", " ").strip().split(" "))
+
+    return np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float64)
+
+
+#Function loads the sensor data for testing.
+def load_test_data():
+    print("Loading Testing Data . . .")
+    body_acc_x = []
+    body_acc_y = []
+    body_acc_z = []
+    body_gyr_x = []
+    body_gyr_y = []
+    body_gyr_z = []
     
-    for signal_type_path in X_signals_paths:
-        file = open(signal_type_path, 'r')
-        # Read dataset from disk, dealing with text files' syntax
-        X_signals.append(
-            [np.array(serie, dtype=np.float32) for serie in [
-                row.replace('  ', ' ').strip().split(' ') for row in file
-            ]]
-        )
-        file.close()
+    with open("Dataset\\test\\Inertial Signals\\body_acc_x_test.txt", 'r') as f:
+        for row in f:
+            body_acc_x.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\test\\Inertial Signals\\body_acc_y_test.txt", 'r') as f:
+        for row in f:
+            body_acc_y.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\test\\Inertial Signals\\body_acc_z_test.txt", 'r') as f:
+        for row in f:
+             body_acc_z.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\test\\Inertial Signals\\body_gyro_x_test.txt", 'r') as f:
+        for row in f:
+            body_gyr_x.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\test\\Inertial Signals\\body_gyro_y_test.txt", 'r') as f:
+        for row in f:
+            body_gyr_y.append(row.replace("  ", " ").strip().split(" "))
+
+    with open("Dataset\\test\\Inertial Signals\\body_gyro_z_test.txt", 'r') as f:
+        for row in f:
+            body_gyr_z.append(row.replace("  ", " ").strip().split(" "))
+
+    return np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float64)
+
+
+#Function loads the label actions respective to the sensor data.
+def load_label():
+    print("Loading Training Labels . . .")
+    label = []
+
+    with open("Dataset\\train\\y_train.txt") as f:
+        for row in f:
+            number = int(row.strip())
+            if number == 1:
+                label.append([1,0,0,0,0,0])
+            elif number == 2:
+                label.append([0,1,0,0,0,0])
+            elif number == 3:
+                label.append([0,0,1,0,0,0])
+            elif number == 4:
+                label.append([0,0,0,1,0,0])
+            elif number == 5:
+                label.append([0,0,0,0,1,0])
+            elif number == 6:
+                label.append([0,0,0,0,0,1])
     
-    return np.transpose(np.array(X_signals), (1, 2, 0))
-
-X_train_signals_paths = [
-    DATASET_PATH + TRAIN + "Inertial Signals/" + signal + "train.txt" for signal in INPUT_SIGNAL_TYPES
-]
-X_test_signals_paths = [
-    DATASET_PATH + TEST + "Inertial Signals/" + signal + "test.txt" for signal in INPUT_SIGNAL_TYPES
-]
-
-X_train = load_X(X_train_signals_paths)
-X_test = load_X(X_test_signals_paths)
+    return np.array(label).astype(np.float64)
 
 
+#Function loads the label actions respective to the sensor data for the testing set.
+def load_test_label():
+    print("Loading Testing Labels . . .")
+    label = []
+
+    with open("Dataset\\test\\y_test.txt") as f:
+        for row in f:
+            number = int(row.strip())
+            if number == 1:
+                label.append([1,0,0,0,0,0])
+            elif number == 2:
+                label.append([0,1,0,0,0,0])
+            elif number == 3:
+                label.append([0,0,1,0,0,0])
+            elif number == 4:
+                label.append([0,0,0,1,0,0])
+            elif number == 5:
+                label.append([0,0,0,0,1,0])
+            elif number == 6:
+                label.append([0,0,0,0,0,1])
+    
+    return np.array(label).astype(np.float64)
+
+
+#Function creates the neural network model.
 def get_model():
     
     model = tf.keras.models.Sequential([
-
-        tf.keras.layers.Dense(10, activation="relu"),
-
-        tf.keras.layers.Dense(NUM_CATEGORIES, activation="softmax")
+        tf.keras.layers.Flatten(input_shape=(128, 6)),
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dense(6, activation="softmax")
     ])
 
     model.compile(
