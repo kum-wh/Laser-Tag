@@ -2,31 +2,32 @@ import numpy as np
 import tensorflow as tf
 
 
-EPOCHS = 20
+EPOCHS = 15
 
 
 #Main function that compiles the loading of the data and training of the model.
 def main():
 
-    acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train, y_train = load_data()
+    acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train, extracted_data, y_train = load_data()
 
     # Get a compiled neural network
     model = get_ann_model()
+    print(model.summary())
 
     # Fit model on training data
-    model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train), y_train, epochs=EPOCHS)
+    model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train, extracted_data), y_train, epochs=EPOCHS)
     
-    t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test, y_test = load_test_data()
+    t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test, extracted_test_data, y_test = load_test_data()
     
     # Evaluate neural network performance
-    model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test),  y_test, verbose=2)
+    model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test, extracted_test_data),  y_test, verbose=2)
 
     # Create confusion matrix
-    y_pred = model.predict((t_acc_x, t_acc_y, t_acc_z,t_gyr_x, t_gyr_y, t_gyr_z, x_test))
+    y_pred = model.predict((t_acc_x, t_acc_y, t_acc_z,t_gyr_x, t_gyr_y, t_gyr_z, x_test, extracted_test_data))
     y_pred = tf.argmax(y_pred, axis=1)
     y_test = tf.argmax(y_test, axis=1 )
     print(tf.math.confusion_matrix(y_test, y_pred))
-    '''
+    
     model = get_cnn_model()
     model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train), y_train, epochs=EPOCHS)
     model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test),  y_test, verbose=2)
@@ -34,9 +35,7 @@ def main():
     y_pred = tf.argmax(y_pred, axis=1)
     y_test = tf.argmax(y_test, axis=1 )
     print(tf.math.confusion_matrix(y_test, y_pred))
-    '''
 
-    '''
     model = get_rnn_model()
     print(model.summary())
     model.fit(x_train, y_train, epochs=EPOCHS)
@@ -44,7 +43,7 @@ def main():
     
     # Extracts the model weights and bias.
     # write_param(model)
-    '''
+
 
 # Function loads the model layer parameters into a text file.
 def write_param(model):
@@ -142,6 +141,7 @@ def load_data():
                 label.append([0,0,0,0,1])
 
     total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float64)
+    extracted_data = extract_data(np.array(body_acc_x).astype(np.float64), np.array(body_acc_y).astype(np.float64), np.array(body_acc_z).astype(np.float64), np.array(body_gyr_x).astype(np.float64), np.array(body_gyr_y).astype(np.float64), np.array(body_gyr_z).astype(np.float64))
     body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float64)
     body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float64)
     body_acc_z = np.transpose([body_acc_z],(1,2,0)).astype(np.float64)
@@ -149,7 +149,7 @@ def load_data():
     body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float64)
     body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float64)
 
-    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, np.array(label).astype(np.float64)
+    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float64)
 
 
 # Function loads the sensor data for testing.
@@ -210,6 +210,7 @@ def load_test_data():
                 label.append([0,0,0,0,1])
 
     total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float64)
+    extracted_data = extract_data(np.array(body_acc_x).astype(np.float64), np.array(body_acc_y).astype(np.float64), np.array(body_acc_z).astype(np.float64), np.array(body_gyr_x).astype(np.float64), np.array(body_gyr_y).astype(np.float64), np.array(body_gyr_z).astype(np.float64))
     body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float64)
     body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float64)
     body_acc_z = np.transpose([body_acc_z],(1,2,0)).astype(np.float64)
@@ -217,10 +218,9 @@ def load_test_data():
     body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float64)
     body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float64)
 
-    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, np.array(label).astype(np.float64)
+    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float64)
 
 
-'''
 # Function extract mean, standard deviation, maximum value and minimum value from array
 def extract_data(body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z):
 
@@ -253,7 +253,6 @@ def extract_data(body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, bod
     min_gyr_z = np.amin(body_gyr_z, axis=1).reshape(-1,1)
 
     return np.concatenate((acc_x_mean, acc_y_mean, acc_z_mean, gyr_x_mean, gyr_y_mean, gyr_z_mean, sd_acc_x, sd_acc_y, sd_acc_z, sd_gyr_x, sd_gyr_y, sd_gyr_z, max_acc_x, max_acc_y, max_acc_z, max_gyr_x, max_gyr_y, max_gyr_z, min_acc_x, min_acc_y, min_acc_z, min_gyr_x, min_gyr_y, min_gyr_z), axis=1)
-'''
 
 
 # Function creates the artificial neural network model.
@@ -266,53 +265,66 @@ def get_ann_model():
     inputE = tf.keras.layers.Input(shape=(128,1))
     inputF = tf.keras.layers.Input(shape=(128,1))
     inputG = tf.keras.layers.Input(shape=(128,6))
+    inputH = tf.keras.layers.Input(shape=(24,))
+
+    data = tf.keras.layers.Dense(256, activation="relu")(inputH)
+    data = tf.keras.layers.Dense(256, activation="relu")(data)
+    data = tf.keras.layers.Dropout(0.5)(data)
+    data = tf.keras.Model(inputs=inputH, outputs=data)
 
     x = tf.keras.layers.Flatten()(inputA)
-    x = tf.keras.layers.Dense(512, activation="relu")(x)
-    x = tf.keras.layers.Dense(128, activation="relu")(x)
+    x = tf.keras.layers.Dense(256, activation="relu")(x)
+    x = tf.keras.layers.Dense(256, activation="relu")(x)
+    x = tf.keras.layers.Dropout(0.5)(x)
     x = tf.keras.Model(inputs=inputA, outputs=x)
 
     y = tf.keras.layers.Flatten()(inputB)
-    y = tf.keras.layers.Dense(512, activation="relu")(y)
-    y = tf.keras.layers.Dense(128, activation="relu")(y)
+    y = tf.keras.layers.Dense(256, activation="relu")(y)
+    y = tf.keras.layers.Dense(256, activation="relu")(y)
+    y = tf.keras.layers.Dropout(0.5)(y)
     y = tf.keras.Model(inputs=inputB, outputs=y)
 
     z = tf.keras.layers.Flatten()(inputC)
-    z = tf.keras.layers.Dense(512, activation="relu")(z)
-    z = tf.keras.layers.Dense(128, activation="relu")(z)
+    z = tf.keras.layers.Dense(256, activation="relu")(z)
+    z = tf.keras.layers.Dense(256, activation="relu")(z)
+    z = tf.keras.layers.Dropout(0.5)(z)
     z = tf.keras.Model(inputs=inputC, outputs=z)
 
     g_x = tf.keras.layers.Flatten()(inputD)
-    g_x = tf.keras.layers.Dense(512, activation="relu")(g_x)
-    g_x = tf.keras.layers.Dense(128, activation="relu")(g_x)
+    g_x = tf.keras.layers.Dense(256, activation="relu")(g_x)
+    g_x = tf.keras.layers.Dense(256, activation="relu")(g_x)
+    g_x = tf.keras.layers.Dropout(0.5)(g_x)
     g_x = tf.keras.Model(inputs=inputD, outputs=g_x)
 
     g_y = tf.keras.layers.Flatten()(inputE)
-    g_y = tf.keras.layers.Dense(512, activation="relu")(g_y)
-    g_y = tf.keras.layers.Dense(128, activation="relu")(g_y)
+    g_y = tf.keras.layers.Dense(256, activation="relu")(g_y)
+    g_y = tf.keras.layers.Dense(256, activation="relu")(g_y)
+    g_y = tf.keras.layers.Dropout(0.5)(g_y)
     g_y = tf.keras.Model(inputs=inputE, outputs=g_y)
 
     g_z = tf.keras.layers.Flatten()(inputF)
-    g_z = tf.keras.layers.Dense(512, activation="relu")(g_z)
-    g_z = tf.keras.layers.Dense(128, activation="relu")(g_z)
+    g_z = tf.keras.layers.Dense(256, activation="relu")(g_z)
+    g_z = tf.keras.layers.Dense(256, activation="relu")(g_z)
+    g_z = tf.keras.layers.Dropout(0.5)(g_z)
     g_z = tf.keras.Model(inputs=inputF, outputs=g_z)
 
     total = tf.keras.layers.Flatten()(inputG)
     total = tf.keras.layers.Dense(512, activation="relu")(total)
-    total = tf.keras.layers.Dense(128, activation="relu")(total)
+    total = tf.keras.layers.Dense(512, activation="relu")(total)
+    total = tf.keras.layers.Dropout(0.5)(total)
     total = tf.keras.Model(inputs=inputG, outputs=total)
 
-    combined = tf.keras.layers.concatenate([x.output, y.output, z.output, g_x.output, g_y.output, g_z.output, total.output])
+    combined = tf.keras.layers.concatenate([x.output, y.output, z.output, g_x.output, g_y.output, g_z.output, total.output, data.output])
 
-    final = tf.keras.layers.Dense(2048, activation="relu")(combined)
+    final = tf.keras.layers.Dense(512, activation="relu")(combined)
     final = tf.keras.layers.Dropout(0.5)(final)
     final = tf.keras.layers.Dense(512, activation="relu")(final)
     final = tf.keras.layers.Dropout(0.5)(final)
-    final = tf.keras.layers.Dense(128, activation="relu")(final)
+    final = tf.keras.layers.Dense(256, activation="relu")(final)
     final = tf.keras.layers.Dropout(0.5)(final)
     final = tf.keras.layers.Dense(5, activation="softmax")(final)
 
-    model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input, total.input], outputs=final)
+    model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input, total.input, data.input], outputs=final)
 
     model.compile(
         optimizer="adam",
@@ -382,8 +394,6 @@ def get_cnn_model():
     final = tf.keras.layers.Dropout(0.5)(final)
     final = tf.keras.layers.Dense(512, activation="relu")(final)
     final = tf.keras.layers.Dropout(0.5)(final)
-    final = tf.keras.layers.Dense(128, activation="relu")(final)
-    final = tf.keras.layers.Dropout(0.5)(final)
     final = tf.keras.layers.Dense(5, activation="softmax")(final)
 
     model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input, total.input], outputs=final)
@@ -397,7 +407,7 @@ def get_cnn_model():
 
     return model
 
-'''
+
 # Function creates the Recurrent neural networks
 def get_rnn_model():
 
@@ -415,7 +425,6 @@ def get_rnn_model():
     )
 
     return model
-'''
 
 
 if __name__ == "__main__":
