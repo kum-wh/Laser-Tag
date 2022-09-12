@@ -1,3 +1,4 @@
+import decimal as dm
 import numpy as np
 import tensorflow as tf
 
@@ -13,7 +14,7 @@ def main():
     # Get a compiled neural network
     model = get_ann_model()
     print(model.summary())
-
+    
     # Fit model on training data
     model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train, extracted_data), y_train, epochs=EPOCHS)
     
@@ -27,7 +28,7 @@ def main():
     y_pred = tf.argmax(y_pred, axis=1)
     y_test = tf.argmax(y_test, axis=1 )
     print(tf.math.confusion_matrix(y_test, y_pred))
-    
+    '''
     model = get_cnn_model()
     model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train), y_train, epochs=EPOCHS)
     model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test),  y_test, verbose=2)
@@ -40,48 +41,117 @@ def main():
     print(model.summary())
     model.fit(x_train, y_train, epochs=EPOCHS)
     model.evaluate(x_test,  y_test, verbose=2)
-    
+    '''
     # Extracts the model weights and bias.
-    # write_param(model)
-
+    write_param(model)
+    
 
 # Function loads the model layer parameters into a text file.
 def write_param(model):
 
     print("Writing weights and bias")
 
-    #Dense Layer 1
-    weight_1 = np.array(model.layers[1].get_weights()[0])
-    bias_1 = np.array(model.layers[1].get_weights()[1])
+    weight = np.array(model.layers[15].get_weights()[0])
+    bias = np.array(model.layers[15].get_weights()[1])
+    np.savetxt("layerx1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasx1.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[23].get_weights()[0])
+    bias = np.array(model.layers[23].get_weights()[1])
+    np.savetxt("layerx2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasx2.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[16].get_weights()[0])
+    bias = np.array(model.layers[16].get_weights()[1])
+    np.savetxt("layery1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasy1.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[24].get_weights()[0])
+    bias = np.array(model.layers[24].get_weights()[1])
+    np.savetxt("layery2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasy2.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[17].get_weights()[0])
+    bias = np.array(model.layers[17].get_weights()[1])
+    np.savetxt("layerz1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasz1.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[25].get_weights()[0])
+    bias = np.array(model.layers[25].get_weights()[1])
+    np.savetxt("layerz2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasz2.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[18].get_weights()[0])
+    bias = np.array(model.layers[18].get_weights()[1])
+    np.savetxt("layergx1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasgx1.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[26].get_weights()[0])
+    bias = np.array(model.layers[26].get_weights()[1])
+    np.savetxt("layergx2.txt", weight, fmt="%f", delimiter=",")           
+    np.savetxt("biasgx2.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[19].get_weights()[0])
+    bias = np.array(model.layers[19].get_weights()[1])
+    np.savetxt("layergy1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasgy1.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[27].get_weights()[0])
+    bias = np.array(model.layers[27].get_weights()[1])
+    np.savetxt("layergy2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasgy2.txt", bias, fmt="%f", delimiter=",")
+
+
+    weight = np.array(model.layers[20].get_weights()[0])
+    bias = np.array(model.layers[20].get_weights()[1])
+    np.savetxt("layergz1.txt", weight, fmt="%f", delimiter=",")       
+    np.savetxt("biasgz1.txt", bias, fmt="%f", delimiter=",")
+
+
+    weight = np.array(model.layers[28].get_weights()[0])
+    bias = np.array(model.layers[28].get_weights()[1])
+    np.savetxt("layergz2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasgz2.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[21].get_weights()[0])
+    bias = np.array(model.layers[21].get_weights()[1])
+    np.savetxt("layertotal1.txt", weight, fmt="%f", delimiter=",")          
+    np.savetxt("biastotal1.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[29].get_weights()[0])
+    bias = np.array(model.layers[29].get_weights()[1])
+    np.savetxt("layertotal2.txt", weight, fmt="%f", delimiter=",")     
+    np.savetxt("biastotal2.txt", bias, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[22].get_weights()[0])
+    bias = np.array(model.layers[22].get_weights()[1])
+    np.savetxt("layerdata1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasdata1.txt", bias, fmt="%f", delimiter=",")
     
-    with open("layer1.txt", "w") as f:
-        for row in weight_1:
-            f.write(str(row) + "\n")
-            
-    with open("bias1.txt", "w") as f:
-        f.write(str(bias_1))
+    weight = np.array(model.layers[30].get_weights()[0])
+    bias = np.array(model.layers[30].get_weights()[1])
+    np.savetxt("layerdata2.txt", weight, fmt="%f", delimiter=",")            
+    np.savetxt("biasdata2.txt", bias, fmt="%f", delimiter=",")
 
-    #Dense Layer 2
-    weight_2 = np.array(model.layers[2].get_weights()[0])
-    bias_2 = np.array(model.layers[2].get_weights()[1])
+    weight = np.array(model.layers[40].get_weights()[0])
+    bias = np.array(model.layers[40].get_weights()[1])
+    np.savetxt("layerfinal1.txt", weight, fmt="%f", delimiter=",") 
+    np.savetxt("biasfinal1.txt", bias, fmt="%f", delimiter=",")
 
-    with open("layer2.txt", "w") as f:
-        for row in weight_2:
-            f.write(str(row) + "\n")
-        
-    with open("bias2.txt", "w") as f:
-        f.write(str(bias_2))
+    weight = np.array(model.layers[42].get_weights()[0])
+    bias = np.array(model.layers[42].get_weights()[1])
+    np.savetxt("layerfinal2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasfinal2.txt", bias, fmt="%f", delimiter=",")
 
-    #Output Layer
-    weight_3 = np.array(model.layers[3].get_weights()[0])
-    bias_3 = np.array(model.layers[3].get_weights()[1])
+    weight = np.array(model.layers[44].get_weights()[0])
+    bias = np.array(model.layers[44].get_weights()[1])
+    np.savetxt("layerfinal3.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("biasfinal3.txt", bias, fmt="%f", delimiter=",")
 
-    with open("layer3.txt", "w") as f:
-        for row in weight_3:
-            f.write(str(row) + "\n")
-        
-    with open("bias3.txt", "w") as f:
-        f.write(str(bias_3))
+    weight = np.array(model.layers[46].get_weights()[0])
+    bias = np.array(model.layers[46].get_weights()[1])
+    np.savetxt("layerfinal4.txt", weight, fmt="%f", delimiter=",")         
+    np.savetxt("biasfinal4.txt", bias, fmt="%f", delimiter=",")
 
 
 # Function loads the sensor data.
@@ -140,16 +210,16 @@ def load_data():
             else:
                 label.append([0,0,0,0,1])
 
-    total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float64)
-    extracted_data = extract_data(np.array(body_acc_x).astype(np.float64), np.array(body_acc_y).astype(np.float64), np.array(body_acc_z).astype(np.float64), np.array(body_gyr_x).astype(np.float64), np.array(body_gyr_y).astype(np.float64), np.array(body_gyr_z).astype(np.float64))
-    body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float64)
-    body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float64)
-    body_acc_z = np.transpose([body_acc_z],(1,2,0)).astype(np.float64)
-    body_gyr_x = np.transpose([body_gyr_x],(1,2,0)).astype(np.float64)
-    body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float64)
-    body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float64)
+    total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float32)
+    extracted_data = extract_data(np.array(body_acc_x).astype(np.float32), np.array(body_acc_y).astype(np.float32), np.array(body_acc_z).astype(np.float32), np.array(body_gyr_x).astype(np.float32), np.array(body_gyr_y).astype(np.float32), np.array(body_gyr_z).astype(np.float32))
+    body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float32)
+    body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float32)
+    body_acc_z = np.transpose([body_acc_z],(1,2,0)).astype(np.float32)
+    body_gyr_x = np.transpose([body_gyr_x],(1,2,0)).astype(np.float32)
+    body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float32)
+    body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float32)
 
-    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float64)
+    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float32)
 
 
 # Function loads the sensor data for testing.
@@ -209,16 +279,16 @@ def load_test_data():
             else:
                 label.append([0,0,0,0,1])
 
-    total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float64)
-    extracted_data = extract_data(np.array(body_acc_x).astype(np.float64), np.array(body_acc_y).astype(np.float64), np.array(body_acc_z).astype(np.float64), np.array(body_gyr_x).astype(np.float64), np.array(body_gyr_y).astype(np.float64), np.array(body_gyr_z).astype(np.float64))
-    body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float64)
-    body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float64)
-    body_acc_z = np.transpose([body_acc_z],(1,2,0)).astype(np.float64)
-    body_gyr_x = np.transpose([body_gyr_x],(1,2,0)).astype(np.float64)
-    body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float64)
-    body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float64)
+    total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float32)
+    extracted_data = extract_data(np.array(body_acc_x).astype(np.float32), np.array(body_acc_y).astype(np.float32), np.array(body_acc_z).astype(np.float32), np.array(body_gyr_x).astype(np.float32), np.array(body_gyr_y).astype(np.float32), np.array(body_gyr_z).astype(np.float32))
+    body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float32)
+    body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float32)
+    body_acc_z = np.transpose([body_acc_z],(1,2,0)).astype(np.float32)
+    body_gyr_x = np.transpose([body_gyr_x],(1,2,0)).astype(np.float32)
+    body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float32)
+    body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float32)
 
-    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float64)
+    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float32)
 
 
 # Function extract mean, standard deviation, maximum value and minimum value from array
