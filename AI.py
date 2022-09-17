@@ -1,33 +1,34 @@
-import decimal as dm
 import numpy as np
 import tensorflow as tf
+import time
 
-
-EPOCHS = 15
+EPOCHS = 50
 
 
 #Main function that compiles the loading of the data and training of the model.
 def main():
 
-    acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train, extracted_data, y_train = load_data()
+    acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, extracted_data, y_train = load_data()
 
     # Get a compiled neural network
     model = get_ann_model()
     print(model.summary())
     
     # Fit model on training data
-    model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train, extracted_data), y_train, epochs=EPOCHS)
+    model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, extracted_data), y_train, epochs=EPOCHS)
     
-    t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test, extracted_test_data, y_test = load_test_data()
+    t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, extracted_test_data, y_test = load_test_data()
     
     # Evaluate neural network performance
-    model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test, extracted_test_data),  y_test, verbose=2)
-
+    model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, extracted_test_data),  y_test, verbose=2)
     # Create confusion matrix
-    y_pred = model.predict((t_acc_x, t_acc_y, t_acc_z,t_gyr_x, t_gyr_y, t_gyr_z, x_test, extracted_test_data))
+    start = time.perf_counter()
+    y_pred = model.predict((t_acc_x, t_acc_y, t_acc_z,t_gyr_x, t_gyr_y, t_gyr_z, extracted_test_data))
+    print(time.perf_counter() - start)
     y_pred = tf.argmax(y_pred, axis=1)
     y_test = tf.argmax(y_test, axis=1 )
     print(tf.math.confusion_matrix(y_test, y_pred))
+    
     '''
     model = get_cnn_model()
     model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train), y_train, epochs=EPOCHS)
@@ -44,6 +45,7 @@ def main():
     '''
     # Extracts the model weights and bias.
     write_param(model)
+    convert_to_C()
     
 
 # Function loads the model layer parameters into a text file.
@@ -51,107 +53,284 @@ def write_param(model):
 
     print("Writing weights and bias")
 
-    weight = np.array(model.layers[15].get_weights()[0])
-    bias = np.array(model.layers[15].get_weights()[1])
+    weight = np.array(model.layers[13].get_weights()[0])
     np.savetxt("layerx1.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasx1.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[23].get_weights()[0])
-    bias = np.array(model.layers[23].get_weights()[1])
-    np.savetxt("layerx2.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasx2.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[16].get_weights()[0])
-    bias = np.array(model.layers[16].get_weights()[1])
-    np.savetxt("layery1.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasy1.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[24].get_weights()[0])
-    bias = np.array(model.layers[24].get_weights()[1])
-    np.savetxt("layery2.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasy2.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[17].get_weights()[0])
-    bias = np.array(model.layers[17].get_weights()[1])
-    np.savetxt("layerz1.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasz1.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[25].get_weights()[0])
-    bias = np.array(model.layers[25].get_weights()[1])
-    np.savetxt("layerz2.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasz2.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[18].get_weights()[0])
-    bias = np.array(model.layers[18].get_weights()[1])
-    np.savetxt("layergx1.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasgx1.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[26].get_weights()[0])
-    bias = np.array(model.layers[26].get_weights()[1])
-    np.savetxt("layergx2.txt", weight, fmt="%f", delimiter=",")           
-    np.savetxt("biasgx2.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[19].get_weights()[0])
-    bias = np.array(model.layers[19].get_weights()[1])
-    np.savetxt("layergy1.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasgy1.txt", bias, fmt="%f", delimiter=",")
-
-    weight = np.array(model.layers[27].get_weights()[0])
-    bias = np.array(model.layers[27].get_weights()[1])
-    np.savetxt("layergy2.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasgy2.txt", bias, fmt="%f", delimiter=",")
-
 
     weight = np.array(model.layers[20].get_weights()[0])
-    bias = np.array(model.layers[20].get_weights()[1])
-    np.savetxt("layergz1.txt", weight, fmt="%f", delimiter=",")       
-    np.savetxt("biasgz1.txt", bias, fmt="%f", delimiter=",")
+    np.savetxt("layerx2.txt", weight, fmt="%f", delimiter=",")
 
-
-    weight = np.array(model.layers[28].get_weights()[0])
-    bias = np.array(model.layers[28].get_weights()[1])
-    np.savetxt("layergz2.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasgz2.txt", bias, fmt="%f", delimiter=",")
+    weight = np.array(model.layers[14].get_weights()[0])
+    np.savetxt("layery1.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[21].get_weights()[0])
-    bias = np.array(model.layers[21].get_weights()[1])
-    np.savetxt("layertotal1.txt", weight, fmt="%f", delimiter=",")          
-    np.savetxt("biastotal1.txt", bias, fmt="%f", delimiter=",")
+    np.savetxt("layery2.txt", weight, fmt="%f", delimiter=",")
 
-    weight = np.array(model.layers[29].get_weights()[0])
-    bias = np.array(model.layers[29].get_weights()[1])
-    np.savetxt("layertotal2.txt", weight, fmt="%f", delimiter=",")     
-    np.savetxt("biastotal2.txt", bias, fmt="%f", delimiter=",")
+    weight = np.array(model.layers[15].get_weights()[0])
+    np.savetxt("layerz1.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[22].get_weights()[0])
-    bias = np.array(model.layers[22].get_weights()[1])
+    np.savetxt("layerz2.txt", weight, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[16].get_weights()[0])
+    np.savetxt("layergx1.txt", weight, fmt="%f", delimiter=",")
+
+    weight = np.array(model.layers[23].get_weights()[0])
+    np.savetxt("layergx2.txt", weight, fmt="%f", delimiter=",")           
+
+    weight = np.array(model.layers[17].get_weights()[0])
+    np.savetxt("layergy1.txt", weight, fmt="%f", delimiter=",")
+   
+
+    weight = np.array(model.layers[24].get_weights()[0])
+    np.savetxt("layergy2.txt", weight, fmt="%f", delimiter=",")
+
+
+    weight = np.array(model.layers[18].get_weights()[0])
+    np.savetxt("layergz1.txt", weight, fmt="%f", delimiter=",")       
+
+
+    weight = np.array(model.layers[25].get_weights()[0])
+    np.savetxt("layergz2.txt", weight, fmt="%f", delimiter=",")
+
+
+    weight = np.array(model.layers[19].get_weights()[0])
     np.savetxt("layerdata1.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasdata1.txt", bias, fmt="%f", delimiter=",")
     
-    weight = np.array(model.layers[30].get_weights()[0])
-    bias = np.array(model.layers[30].get_weights()[1])
-    np.savetxt("layerdata2.txt", weight, fmt="%f", delimiter=",")            
-    np.savetxt("biasdata2.txt", bias, fmt="%f", delimiter=",")
+    weight = np.array(model.layers[26].get_weights()[0])
+    np.savetxt("layerdata2.txt", weight, fmt="%f", delimiter=",")
 
-    weight = np.array(model.layers[40].get_weights()[0])
-    bias = np.array(model.layers[40].get_weights()[1])
+    weight = np.array(model.layers[35].get_weights()[0])
     np.savetxt("layerfinal1.txt", weight, fmt="%f", delimiter=",") 
-    np.savetxt("biasfinal1.txt", bias, fmt="%f", delimiter=",")
 
-    weight = np.array(model.layers[42].get_weights()[0])
-    bias = np.array(model.layers[42].get_weights()[1])
+    weight = np.array(model.layers[37].get_weights()[0])
     np.savetxt("layerfinal2.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasfinal2.txt", bias, fmt="%f", delimiter=",")
 
-    weight = np.array(model.layers[44].get_weights()[0])
-    bias = np.array(model.layers[44].get_weights()[1])
-    np.savetxt("layerfinal3.txt", weight, fmt="%f", delimiter=",")
-    np.savetxt("biasfinal3.txt", bias, fmt="%f", delimiter=",")
+# Function convert the txt to C++ arrays
+def convert_to_C():
 
-    weight = np.array(model.layers[46].get_weights()[0])
-    bias = np.array(model.layers[46].get_weights()[1])
-    np.savetxt("layerfinal4.txt", weight, fmt="%f", delimiter=",")         
-    np.savetxt("biasfinal4.txt", bias, fmt="%f", delimiter=",")
+    node = []
+    text = []
+    with open("layerx1.txt","r") as f:
+        for line in f:
+            row  = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerx1.txt", node, fmt="%f", delimiter=",")
+    with open("layerx1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerx1.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layerx2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerx2.txt",node, fmt="%f", delimiter=",")
+    with open("layerx2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerx2.txt","w") as f:
+        f.writelines(text)
+    
+    node = []
+    text = []
+    with open("layery1.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layery1.txt",node, fmt="%f", delimiter=",")
+    with open("layery1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layery1.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layery2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layery2.txt",node, fmt="%f", delimiter=",")
+    with open("layery2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layery2.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layerz1.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerz1.txt",node, fmt="%f", delimiter=",")
+    with open("layerz1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerz1.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layerz2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerz2.txt",node, fmt="%f", delimiter=",")
+    with open("layerz2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerz2.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layergx1.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layergx1.txt",node, fmt="%f", delimiter=",")
+    with open("layergx1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layergx1.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layergx2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layergx2.txt",node, fmt="%f", delimiter=",")
+    with open("layergx2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layergx2.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layergy1.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layergy1.txt",node, fmt="%f", delimiter=",")
+    with open("layergy1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layergy1.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layergy2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layergy2.txt",node, fmt="%f", delimiter=",")
+    with open("layergy2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layergy2.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layergz1.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layergz1.txt",node, fmt="%f", delimiter=",")
+    with open("layergz1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layergz1.txt","w") as f:
+        f.writelines(text)
+    
+    node = []
+    text = []
+    with open("layergz2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layergz2.txt",node, fmt="%f", delimiter=",")
+    with open("layergz2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layergz2.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layerdata1.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerdata1.txt",node, fmt="%f", delimiter=",")
+    with open("layerdata1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerdata1.txt","w") as f:
+        f.writelines(text)
+    
+    node = []
+    text = []
+    with open("layerdata2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerdata2.txt",node, fmt="%f", delimiter=",")
+    with open("layerdata2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerdata2.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layerfinal1.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerfinal1.txt",node, fmt="%f", delimiter=",")
+    with open("layerfinal1.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerfinal1.txt","w") as f:
+        f.writelines(text)
+
+    node = []
+    text = []
+    with open("layerfinal2.txt","r") as f:
+        for line in f:
+            row = np.array(line.split(",")).astype(np.float32)
+            node.append(row)
+        node = np.transpose(node)
+    np.savetxt("layerfinal2.txt",node, fmt="%f", delimiter=",")
+    with open("layerfinal2.txt","r") as f:
+        for line in f:
+            text.append("[" + line.strip() + "],\n")
+    with open("layerfinal2.txt","w") as f:
+        f.writelines(text)
 
 
 # Function loads the sensor data.
@@ -210,7 +389,6 @@ def load_data():
             else:
                 label.append([0,0,0,0,1])
 
-    total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float32)
     extracted_data = extract_data(np.array(body_acc_x).astype(np.float32), np.array(body_acc_y).astype(np.float32), np.array(body_acc_z).astype(np.float32), np.array(body_gyr_x).astype(np.float32), np.array(body_gyr_y).astype(np.float32), np.array(body_gyr_z).astype(np.float32))
     body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float32)
     body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float32)
@@ -219,7 +397,7 @@ def load_data():
     body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float32)
     body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float32)
 
-    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float32)
+    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, extracted_data, np.array(label).astype(np.float32)
 
 
 # Function loads the sensor data for testing.
@@ -279,7 +457,6 @@ def load_test_data():
             else:
                 label.append([0,0,0,0,1])
 
-    total = np.transpose([body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z],(1,2,0)).astype(np.float32)
     extracted_data = extract_data(np.array(body_acc_x).astype(np.float32), np.array(body_acc_y).astype(np.float32), np.array(body_acc_z).astype(np.float32), np.array(body_gyr_x).astype(np.float32), np.array(body_gyr_y).astype(np.float32), np.array(body_gyr_z).astype(np.float32))
     body_acc_x = np.transpose([body_acc_x],(1,2,0)).astype(np.float32)
     body_acc_y = np.transpose([body_acc_y],(1,2,0)).astype(np.float32)
@@ -288,7 +465,7 @@ def load_test_data():
     body_gyr_y = np.transpose([body_gyr_y],(1,2,0)).astype(np.float32)
     body_gyr_z = np.transpose([body_gyr_z],(1,2,0)).astype(np.float32)
 
-    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, total, extracted_data, np.array(label).astype(np.float32)
+    return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, extracted_data, np.array(label).astype(np.float32)
 
 
 # Function extract mean, standard deviation, maximum value and minimum value from array
@@ -334,67 +511,56 @@ def get_ann_model():
     inputD = tf.keras.layers.Input(shape=(128,1))
     inputE = tf.keras.layers.Input(shape=(128,1))
     inputF = tf.keras.layers.Input(shape=(128,1))
-    inputG = tf.keras.layers.Input(shape=(128,6))
-    inputH = tf.keras.layers.Input(shape=(24,))
+    inputG = tf.keras.layers.Input(shape=(24,))
 
-    data = tf.keras.layers.Dense(256, activation="relu")(inputH)
-    data = tf.keras.layers.Dense(256, activation="relu")(data)
+    data = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(inputG)
+    data = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(data)
     data = tf.keras.layers.Dropout(0.5)(data)
-    data = tf.keras.Model(inputs=inputH, outputs=data)
+    data = tf.keras.Model(inputs=inputG, outputs=data)
 
     x = tf.keras.layers.Flatten()(inputA)
-    x = tf.keras.layers.Dense(256, activation="relu")(x)
-    x = tf.keras.layers.Dense(256, activation="relu")(x)
+    x = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(x)
+    x = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(x)
     x = tf.keras.layers.Dropout(0.5)(x)
     x = tf.keras.Model(inputs=inputA, outputs=x)
 
     y = tf.keras.layers.Flatten()(inputB)
-    y = tf.keras.layers.Dense(256, activation="relu")(y)
-    y = tf.keras.layers.Dense(256, activation="relu")(y)
+    y = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(y)
+    y = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(y)
     y = tf.keras.layers.Dropout(0.5)(y)
     y = tf.keras.Model(inputs=inputB, outputs=y)
 
     z = tf.keras.layers.Flatten()(inputC)
-    z = tf.keras.layers.Dense(256, activation="relu")(z)
-    z = tf.keras.layers.Dense(256, activation="relu")(z)
+    z = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(z)
+    z = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(z)
     z = tf.keras.layers.Dropout(0.5)(z)
     z = tf.keras.Model(inputs=inputC, outputs=z)
 
     g_x = tf.keras.layers.Flatten()(inputD)
-    g_x = tf.keras.layers.Dense(256, activation="relu")(g_x)
-    g_x = tf.keras.layers.Dense(256, activation="relu")(g_x)
+    g_x = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(g_x)
+    g_x = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(g_x)
     g_x = tf.keras.layers.Dropout(0.5)(g_x)
     g_x = tf.keras.Model(inputs=inputD, outputs=g_x)
 
     g_y = tf.keras.layers.Flatten()(inputE)
-    g_y = tf.keras.layers.Dense(256, activation="relu")(g_y)
-    g_y = tf.keras.layers.Dense(256, activation="relu")(g_y)
+    g_y = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(g_y)
+    g_y = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(g_y)
     g_y = tf.keras.layers.Dropout(0.5)(g_y)
     g_y = tf.keras.Model(inputs=inputE, outputs=g_y)
 
     g_z = tf.keras.layers.Flatten()(inputF)
-    g_z = tf.keras.layers.Dense(256, activation="relu")(g_z)
-    g_z = tf.keras.layers.Dense(256, activation="relu")(g_z)
+    g_z = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(g_z)
+    g_z = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(g_z)
     g_z = tf.keras.layers.Dropout(0.5)(g_z)
     g_z = tf.keras.Model(inputs=inputF, outputs=g_z)
 
-    total = tf.keras.layers.Flatten()(inputG)
-    total = tf.keras.layers.Dense(512, activation="relu")(total)
-    total = tf.keras.layers.Dense(512, activation="relu")(total)
-    total = tf.keras.layers.Dropout(0.5)(total)
-    total = tf.keras.Model(inputs=inputG, outputs=total)
+    combined = tf.keras.layers.concatenate([x.output, y.output, z.output, g_x.output, g_y.output, g_z.output, data.output])
 
-    combined = tf.keras.layers.concatenate([x.output, y.output, z.output, g_x.output, g_y.output, g_z.output, total.output, data.output])
+    final = tf.keras.layers.Dense(32, activation="relu", use_bias=False)(combined)
+    final = tf.keras.layers.Dropout(0.5)(final)
+    final = tf.keras.layers.Dense(5, activation="softmax", use_bias=False)(final)
 
-    final = tf.keras.layers.Dense(512, activation="relu")(combined)
-    final = tf.keras.layers.Dropout(0.5)(final)
-    final = tf.keras.layers.Dense(512, activation="relu")(final)
-    final = tf.keras.layers.Dropout(0.5)(final)
-    final = tf.keras.layers.Dense(256, activation="relu")(final)
-    final = tf.keras.layers.Dropout(0.5)(final)
-    final = tf.keras.layers.Dense(5, activation="softmax")(final)
-
-    model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input, total.input, data.input], outputs=final)
+    model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input, data.input], outputs=final)
 
     model.compile(
         optimizer="adam",
@@ -414,59 +580,52 @@ def get_cnn_model():
     inputD = tf.keras.layers.Input(shape=(128,1))
     inputE = tf.keras.layers.Input(shape=(128,1))
     inputF = tf.keras.layers.Input(shape=(128,1))
-    inputG = tf.keras.layers.Input(shape=(128,6))
 
-    x = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(inputA)
+    x = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(inputA)
     x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
-    x = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(x)
+    x = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(x)
     x = tf.keras.layers.Flatten()(x)
     x = tf.keras.Model(inputs=inputA, outputs=x)
 
-    y = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(inputB)
+    y = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(inputB)
     y = tf.keras.layers.MaxPooling1D(pool_size=3)(y)
-    y = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(y)
+    y = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(y)
     y = tf.keras.layers.Flatten()(y)
     y = tf.keras.Model(inputs=inputB, outputs=y)
 
-    z = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(inputC)
+    z = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(inputC)
     z = tf.keras.layers.MaxPooling1D(pool_size=3)(z)
-    z = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(z)
+    z = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(z)
     z = tf.keras.layers.Flatten()(z)
     z = tf.keras.Model(inputs=inputC, outputs=z)
 
-    g_x = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(inputD)
+    g_x = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(inputD)
     g_x = tf.keras.layers.MaxPooling1D(pool_size=3)(g_x)
-    g_x = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(g_x)
+    g_x = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(g_x)
     g_x = tf.keras.layers.Flatten()(g_x)
     g_x = tf.keras.Model(inputs=inputD, outputs=g_x)
 
-    g_y = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(inputE)
+    g_y = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(inputE)
     g_y = tf.keras.layers.MaxPooling1D(pool_size=3)(g_y)
-    g_y = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(g_y)
+    g_y = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(g_y)
     g_y = tf.keras.layers.Flatten()(g_y)
     g_y = tf.keras.Model(inputs=inputE, outputs=g_y)
 
-    g_z = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(inputF)
+    g_z = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(inputF)
     g_z = tf.keras.layers.MaxPooling1D(pool_size=3)(g_z)
-    g_z = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(g_z)
+    g_z = tf.keras.layers.Conv1D(filters=12, kernel_size=3, activation="relu")(g_z)
     g_z = tf.keras.layers.Flatten()(g_z)
     g_z = tf.keras.Model(inputs=inputF, outputs=g_z)
 
-    total = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(inputG)
-    total = tf.keras.layers.MaxPooling1D(pool_size=3)(total)
-    total = tf.keras.layers.Conv1D(filters=24, kernel_size=3, activation="relu")(total)
-    total = tf.keras.layers.Flatten()(total)
-    total = tf.keras.Model(inputs=inputG, outputs=total)
+    combined = tf.keras.layers.concatenate([x.output, y.output, z.output, g_x.output, g_y.output, g_z.output])
 
-    combined = tf.keras.layers.concatenate([x.output, y.output, z.output, g_x.output, g_y.output, g_z.output, total.output])
-
-    final = tf.keras.layers.Dense(2048, activation="relu")(combined)
+    final = tf.keras.layers.Dense(256, activation="relu")(combined)
     final = tf.keras.layers.Dropout(0.5)(final)
-    final = tf.keras.layers.Dense(512, activation="relu")(final)
+    final = tf.keras.layers.Dense(64, activation="relu")(final)
     final = tf.keras.layers.Dropout(0.5)(final)
     final = tf.keras.layers.Dense(5, activation="softmax")(final)
 
-    model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input, total.input], outputs=final)
+    model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input], outputs=final)
     
 
     model.compile(
