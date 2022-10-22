@@ -16,11 +16,12 @@ def main():
     
     # Fit model on training data
     model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, extracted_data), y_train, epochs=EPOCHS)
-    
+
     t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, extracted_test_data, y_test = load_test_data()
-    
+
     # Evaluate neural network performance
     model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, extracted_test_data),  y_test, verbose=2)
+    
     # Create confusion matrix
     start = time.perf_counter()
     y_pred = model.predict((t_acc_x, t_acc_y, t_acc_z,t_gyr_x, t_gyr_y, t_gyr_z, extracted_test_data))
@@ -28,8 +29,7 @@ def main():
     y_pred = tf.argmax(y_pred, axis=1)
     y_test = tf.argmax(y_test, axis=1 )
     print(tf.math.confusion_matrix(y_test, y_pred))
-    
-    '''
+
     model = get_cnn_model()
     model.fit((acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, x_train), y_train, epochs=EPOCHS)
     model.evaluate((t_acc_x, t_acc_y, t_acc_z, t_gyr_x, t_gyr_y, t_gyr_z, x_test),  y_test, verbose=2)
@@ -42,7 +42,7 @@ def main():
     print(model.summary())
     model.fit(x_train, y_train, epochs=EPOCHS)
     model.evaluate(x_test,  y_test, verbose=2)
-    '''
+
     # Extracts the model weights and bias.
     write_param(model)
     convert_to_C()
@@ -54,283 +54,92 @@ def write_param(model):
     print("Writing weights and bias")
 
     weight = np.array(model.layers[13].get_weights()[0])
-    np.savetxt("layerx1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layerx1.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[20].get_weights()[0])
-    np.savetxt("layerx2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layerx2.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[14].get_weights()[0])
-    np.savetxt("layery1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layery1.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[21].get_weights()[0])
-    np.savetxt("layery2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layery2.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[15].get_weights()[0])
-    np.savetxt("layerz1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layerz1.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[22].get_weights()[0])
-    np.savetxt("layerz2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layerz2.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[16].get_weights()[0])
-    np.savetxt("layergx1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layergx1.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[23].get_weights()[0])
-    np.savetxt("layergx2.txt", weight, fmt="%f", delimiter=",")           
+    np.savetxt("DataSet-Weights\\layergx2.txt", weight, fmt="%f", delimiter=",")           
 
     weight = np.array(model.layers[17].get_weights()[0])
-    np.savetxt("layergy1.txt", weight, fmt="%f", delimiter=",")
-   
+    np.savetxt("DataSet-Weights\\layergy1.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[24].get_weights()[0])
-    np.savetxt("layergy2.txt", weight, fmt="%f", delimiter=",")
-
+    np.savetxt("DataSet-Weights\\layergy2.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[18].get_weights()[0])
-    np.savetxt("layergz1.txt", weight, fmt="%f", delimiter=",")       
-
+    np.savetxt("DataSet-Weights\\layergz1.txt", weight, fmt="%f", delimiter=",")       
 
     weight = np.array(model.layers[25].get_weights()[0])
-    np.savetxt("layergz2.txt", weight, fmt="%f", delimiter=",")
-
+    np.savetxt("DataSet-Weights\\layergz2.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[19].get_weights()[0])
-    np.savetxt("layerdata1.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layerdata1.txt", weight, fmt="%f", delimiter=",")
     
     weight = np.array(model.layers[26].get_weights()[0])
-    np.savetxt("layerdata2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layerdata2.txt", weight, fmt="%f", delimiter=",")
 
     weight = np.array(model.layers[35].get_weights()[0])
-    np.savetxt("layerfinal1.txt", weight, fmt="%f", delimiter=",") 
+    np.savetxt("DataSet-Weights\\layerfinal1.txt", weight, fmt="%f", delimiter=",") 
 
     weight = np.array(model.layers[37].get_weights()[0])
-    np.savetxt("layerfinal2.txt", weight, fmt="%f", delimiter=",")
+    np.savetxt("DataSet-Weights\\layerfinal2.txt", weight, fmt="%f", delimiter=",")
 
-# Function convert the txt to C++ arrays
-def convert_to_C():
 
+def convert(filename):
     node = []
     text = []
-    with open("layerx1.txt","r") as f:
+    with open(filename,"r") as f:
         for line in f:
             row  = np.array(line.split(",")).astype(np.float32)
             node.append(row)
         node = np.transpose(node)
-    np.savetxt("layerx1.txt", node, fmt="%f", delimiter=",")
-    with open("layerx1.txt","r") as f:
+    np.savetxt(filename, node, fmt="%f", delimiter=",")
+    with open(filename,"r") as f:
         for line in f:
             text.append("[" + line.strip() + "],\n")
-    with open("layerx1.txt","w") as f:
+    with open(filename,"w") as f:
         f.writelines(text)
 
-    node = []
-    text = []
-    with open("layerx2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layerx2.txt",node, fmt="%f", delimiter=",")
-    with open("layerx2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layerx2.txt","w") as f:
-        f.writelines(text)
+# Function convert the txt to C++ arrays
+def convert_to_C():
+
+    files = ["DataSet-Weights\\layerx1.txt",
+            "DataSet-Weights\\layerx2.txt",
+            "DataSet-Weights\\layery1.txt",
+            "DataSet-Weights\\layery2.txt",
+            "DataSet-Weights\\layerz1.txt",
+            "DataSet-Weights\\layerz2.txt",
+            "DataSet-Weights\\layergx1.txt",
+            "DataSet-Weights\\layergx2.txt",
+            "DataSet-Weights\\layergy1.txt",
+            "DataSet-Weights\\layergy2.txt",
+            "DataSet-Weights\\layergz1.txt",
+            "DataSet-Weights\\layergz2.txt",
+            "DataSet-Weights\\layerdata1.txt",
+            "DataSet-Weights\\layerdata2.txt",
+            "DataSet-Weights\\layerfinal1.txt",
+            "DataSet-Weights\\layerfinal2.txt"
+            ]
     
-    node = []
-    text = []
-    with open("layery1.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layery1.txt",node, fmt="%f", delimiter=",")
-    with open("layery1.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layery1.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layery2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layery2.txt",node, fmt="%f", delimiter=",")
-    with open("layery2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layery2.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layerz1.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layerz1.txt",node, fmt="%f", delimiter=",")
-    with open("layerz1.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layerz1.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layerz2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layerz2.txt",node, fmt="%f", delimiter=",")
-    with open("layerz2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layerz2.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layergx1.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layergx1.txt",node, fmt="%f", delimiter=",")
-    with open("layergx1.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layergx1.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layergx2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layergx2.txt",node, fmt="%f", delimiter=",")
-    with open("layergx2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layergx2.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layergy1.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layergy1.txt",node, fmt="%f", delimiter=",")
-    with open("layergy1.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layergy1.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layergy2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layergy2.txt",node, fmt="%f", delimiter=",")
-    with open("layergy2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layergy2.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layergz1.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layergz1.txt",node, fmt="%f", delimiter=",")
-    with open("layergz1.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layergz1.txt","w") as f:
-        f.writelines(text)
-    
-    node = []
-    text = []
-    with open("layergz2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layergz2.txt",node, fmt="%f", delimiter=",")
-    with open("layergz2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layergz2.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layerdata1.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layerdata1.txt",node, fmt="%f", delimiter=",")
-    with open("layerdata1.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layerdata1.txt","w") as f:
-        f.writelines(text)
-    
-    node = []
-    text = []
-    with open("layerdata2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layerdata2.txt",node, fmt="%f", delimiter=",")
-    with open("layerdata2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layerdata2.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layerfinal1.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layerfinal1.txt",node, fmt="%f", delimiter=",")
-    with open("layerfinal1.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layerfinal1.txt","w") as f:
-        f.writelines(text)
-
-    node = []
-    text = []
-    with open("layerfinal2.txt","r") as f:
-        for line in f:
-            row = np.array(line.split(",")).astype(np.float32)
-            node.append(row)
-        node = np.transpose(node)
-    np.savetxt("layerfinal2.txt",node, fmt="%f", delimiter=",")
-    with open("layerfinal2.txt","r") as f:
-        for line in f:
-            text.append("[" + line.strip() + "],\n")
-    with open("layerfinal2.txt","w") as f:
-        f.writelines(text)
+    for f in files:
+        convert(f)
 
 
 # Function loads the sensor data.
