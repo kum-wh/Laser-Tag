@@ -312,8 +312,6 @@ class EvalClient():
         try:
             # recv length followed by '_' followed by cypher
             data = b''
-
-            # Get the length of the message which is indicate by the message before the char '_' 
             while not data.endswith(b'_'):
                 _d = self.client.recv(1)
                 if not _d:
@@ -322,11 +320,10 @@ class EvalClient():
                 data += _d
             if len(data) == 0:
                 print('no more data from the client')
+                print("STOP!!!!")
             data = data.decode("utf-8")
             length = int(data[:-1])
             data = b''
-
-            # Getting the actual data
             while len(data) < length:
                 _d = self.client.recv(length - len(data))
                 if not _d:
@@ -335,9 +332,11 @@ class EvalClient():
                 data += _d
             if len(data) == 0:
                 print('no more data from the client')
+                print("STOP!!!!")
             msg = data.decode("utf8")
         except ConnectionResetError:
             print('Connection Reset')
+            print("STOP!!!!")
         return msg
 
     def run(self):
@@ -382,10 +381,10 @@ class EvalClient():
 
 class Visualizer():
     def __init__(self):
-        # Create One instance of mqtt and connect to the online broker
         # mqtt.eclipseprojects.io
         #self.mqttBroker ="mqtt.eclipseprojects.io"
         self.mqttBroker = "broker.hivemq.com"
+
         self.publisher = mqtt.Client("Pub")
         self.publisher.connect(self.mqttBroker, 1883, 60) 
 
@@ -405,7 +404,6 @@ class Visualizer():
         
     #     queue_greande_hit_or_miss.put(grenade_hit)
 
-    # Publish the game state to the visualizer
     def speak(self):
         while True:
             game_state = queue_visualizer.get()
