@@ -5,7 +5,7 @@ from Helper import Actions
 
 class StateStaff(PlayerStateBase): # StateStaff inherits from PlayerStateBase
     # update the player statistics
-    def update(self, action_self):
+    def update(self, pos_self, pos_opponent, action_self, action_opponent, action_opponent_is_valid):
         if self.action_is_valid(action_self):
             self.action = action_self
 

@@ -19,19 +19,19 @@ def main():
     print("Clear file?")
     inputs = input()
     if inputs == "1":
-        with open("RealData2\\x.txt","w") as f:
+        with open("RealData\\x.txt","w") as f:
             f.write("")
-        with open("RealData2\\y.txt","w") as f:
+        with open("RealData\\y.txt","w") as f:
             f.write("")
-        with open("RealData2\\z.txt","w") as f:
+        with open("RealData\\z.txt","w") as f:
             f.write("")
-        with open("RealData2\\gx.txt","w") as f:
+        with open("RealData\\gx.txt","w") as f:
             f.write("")
-        with open("RealData2\\gy.txt","w") as f:
+        with open("RealData\\gy.txt","w") as f:
             f.write("")
-        with open("RealData2\\gz.txt","w") as f:
+        with open("RealData\\gz.txt","w") as f:
             f.write("")
-        with open("RealData2\\label.txt","w") as f:
+        with open("RealData\\label.txt","w") as f:
             f.write("")
         print("clear")
     
@@ -72,19 +72,19 @@ def main():
 
                 counter += 1  
                 
-                with open("RealData2\\x.txt","a") as f:
+                with open("RealData\\x.txt","a") as f:
                     f.write(str(x).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData2\\y.txt","a") as f:
+                with open("RealData\\y.txt","a") as f:
                     f.write(str(y).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData2\\z.txt","a") as f:
+                with open("RealData\\z.txt","a") as f:
                     f.write(str(z).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData2\\gx.txt","a") as f:
+                with open("RealData\\gx.txt","a") as f:
                     f.write(str(gx).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData2\\gy.txt","a") as f:
+                with open("RealData\\gy.txt","a") as f:
                     f.write(str(gy).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData2\\gz.txt","a") as f:
+                with open("RealData\\gz.txt","a") as f:
                     f.write(str(gz).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData2\\label.txt","a") as f:
+                with open("RealData\\label.txt","a") as f:
                     f.write(str(action_num) + "\n")
                 
                 print(counter)

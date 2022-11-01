@@ -1,9 +1,10 @@
 from operator import length_hint
+from threading import Timer
 import socket
 import threading
 import queue
 import random
-from GameState import GameState
+from GameState_12 import GameState
 import base64
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
@@ -11,8 +12,8 @@ import json
 import paho.mqtt.client as mqtt 
 from colorama import Fore
 from colorama import Style
-from pynq import Overlay
-from pynq import allocate
+# from pynq import Overlay
+# from pynq import allocate
 import numpy as np
 import time
 from struct import *
@@ -43,7 +44,7 @@ def padd():
         if ((time.time() - imu_time > 1) and length != 0):
             #print("INSIDE ELIF")
             for i in range(100 - length):
-                queue_ai.put(b'W\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+                queue_ai.put(b'W\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
             time.sleep(1)
 
 
@@ -195,42 +196,57 @@ class AI():
         elif output_buffer[0] == 4:
             return "none"
         elif output_buffer[0] == 5:
-            return "logout"   
+            return "logout"
         '''
-        return "grenade"
+        return 'shoot'
 
 
     def run(self):
         while True:
             sensor_reading = queue_ai.get()
+
             # sensor_reading_in_dict = json.loads(sensor_reading)
-            unpacked_sensor_reading = unpack('<b''6h''b''3h',  sensor_reading)
+            # unpacked_sensor_reading = unpack('<b''6h''b''3h',  sensor_reading)
+            unpacked_sensor_reading = unpack('<b''b''6h''b''2h''b',  sensor_reading)
             print(f"AI HAS RECEIVED SENSOR READING {unpacked_sensor_reading}")
 
-            # TODO gun shoot and miss
-            if unpacked_sensor_reading[0] == 71: # GUN 71, VEST 86 or unpacked_sensor_reading[0] == 86
-                action = "shoot"
-                queue_game_state.put(action)
-                # queue.get()
+            # Updated with Player ID 
+            if len(unpacked_sensor_reading) != 12:
+                print('Wrong packet received! The length of the packet is ',len(unpacked_sensor_reading))
                 continue
+            player = unpacked_sensor_reading[1]
 
+            # Added a delay thread for shoot to acocunt for missed shots
+            if unpacked_sensor_reading[0] == 71: # GUN 71, VEST 86 or unpacked_sensor_reading[0] == 86
+                action = f"{player} shoot"
+                #queue_game_state.put(action) # Thread for each player
+                delay_shoot = Timer(0.3, queue_game_state.put, args=(action,))
+                delay_shoot.daemon = True
+                delay_shoot.start() 
+                # queue.get()
+            elif unpacked_sensor_reading[0] == 86:
+                action = f"{player} hit"
+                queue_game_state.put(action)
+
+            # TODO Need a new AI for player 2
             elif unpacked_sensor_reading[0] == 87: # IMU 87
                 global imu_time
                 global length
                 imu_time = time.time()
 
-                self.x.append(unpacked_sensor_reading[1]) 
-                self.y.append(unpacked_sensor_reading[2]) 
-                self.z.append(unpacked_sensor_reading[3]) 
-                self.gx.append(unpacked_sensor_reading[4]) 
-                self.gy.append(unpacked_sensor_reading[5]) 
-                self.gz.append(unpacked_sensor_reading[6])
+                # Modify the positions as added a new byte to indicate player
+                self.x.append(unpacked_sensor_reading[2]) 
+                self.y.append(unpacked_sensor_reading[3]) 
+                self.z.append(unpacked_sensor_reading[4]) 
+                self.gx.append(unpacked_sensor_reading[5]) 
+                self.gy.append(unpacked_sensor_reading[6]) 
+                self.gz.append(unpacked_sensor_reading[7])
 
                 length = len(self.x) #length += 1
                 print(f"{length} number of IMU sensor readings are received!")
                 print(length == self.MAXIMUM_COUNTER)
 
-                if (length == self.MAXIMUM_COUNTER):
+                if (length == self.MAXIMUM_COUNTER): # <-- One more player 2
                     action = self.ai()
 
                     self.x.clear()
@@ -242,14 +258,18 @@ class AI():
 
                     length = 0
 
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {action}{Style.RESET_ALL}')
-
-                    queue_game_state.put(action) # do not care if it is grenade or other actions
+                    #Added
+                    pred_action = f"{player} {action}"
+                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
+                    
+                    queue_game_state.put(pred_action) # do not care if it is grenade or other actions
 
 class GameMechanics():
     def __init__(self):
         self.p1_action = 'none'
         self.p2_action = 'none'
+        self.p1_ready = False
+        self.p2_ready = False
         # self.p1_hit = False
         # self.p2_hit = False
         # self.actions_to_generate = ['shoot', 'grenade', 'shield', 'reload']
@@ -258,45 +278,59 @@ class GameMechanics():
     
     def run(self):
         while True:
-            action = queue_game_state.get()
-            self.p1_action = action
+            curr_action = queue_game_state.get()
+            
+            # Added player ID
+            player , action = curr_action.split(" ")
+            if player == 1 and not self.p1_ready:
+                self.p1_action = action
+                self.p1_ready = True
+            elif player == 2 and not self.p2_ready:
+                self.p2_action = action
+                self.p2_ready = True
+            else:
+                print(f"Player 1 action: {self.p1_action}, Player 1 status: {self.p1_ready}")
+                print(f"Player 2 action: {self.p2_action}, Player 2 status: {self.p2_ready}")
+                continue
 
             '''
             if logout need to make sure game ends! Viz job. Ext Comms can make program sleep.
             '''
         
-            print(f"[GAME MECHANICS] Player states updated :)")
-            self.game_state.update_players(self.p1_action, self.p2_action)
-
+            self.game_state.update_players(curr_action)
+            print(f"[GAME MECHANICS] Player states updated with {curr_action} :)")
             self.game_state_in_dict = self.game_state.get_dict()
-            queue_eval_client.put(self.game_state_in_dict)
+            if self.p1_ready and self.p2_ready:
+                queue_eval_client.put(self.game_state_in_dict)
+                self.p1_ready = False
+                self.p2_ready = False
+                ground_truth = queue_ground_truth.get()
+
+                if ground_truth['p1']['hp'] != (self.game_state.get_dict())['p1']['hp'] or ground_truth['p1']['action'] != (self.game_state.get_dict())['p1']['action'] or ground_truth['p1']['bullets'] != (self.game_state.get_dict())['p1']['bullets'] or ground_truth['p1']['grenades'] != (self.game_state.get_dict())['p1']['grenades'] or ground_truth['p1']['shield_health'] != (self.game_state.get_dict())['p1']['shield_health'] or ground_truth['p1']['num_deaths'] != (self.game_state.get_dict())['p1']['num_deaths'] or ground_truth['p1']['num_shield'] != (self.game_state.get_dict())['p1']['num_shield'] or ground_truth['p2']['hp'] != (self.game_state.get_dict())['p2']['hp'] or ground_truth['p2']['action'] != (self.game_state.get_dict())['p2']['action'] or ground_truth['p2']['bullets'] != (self.game_state.get_dict())['p2']['bullets'] or ground_truth['p2']['grenades'] != (self.game_state.get_dict())['p2']['grenades'] or ground_truth['p2']['shield_health'] != (self.game_state.get_dict())['p2']['shield_health'] or ground_truth['p2']['num_deaths'] != (self.game_state.get_dict())['p2']['num_deaths'] or ground_truth['p2']['num_shield'] != (self.game_state.get_dict())['p2']['num_shield']:
+
+                    print("Predicted game state differs from the ground truth!")
+
+                    self.game_state.player_1.hp = ground_truth['p1']['hp']
+                    self.game_state.player_1.action = ground_truth['p1']['action']
+                    self.game_state.player_1.bullets = ground_truth['p1']['bullets']
+                    self.game_state.player_1.grenades = ground_truth['p1']['grenades']
+                    #self.game_state.player_1.shield_time = ground_truth['p1']['shield_time']
+                    self.game_state.player_1.shield_health = ground_truth['p1']['shield_health']
+                    self.game_state.player_1.num_deaths = ground_truth['p1']['num_deaths']
+                    self.game_state.player_1.num_shield = ground_truth['p1']['num_shield']
+
+                    self.game_state.player_2.hp = ground_truth['p2']['hp']
+                    self.game_state.player_2.action = ground_truth['p2']['action']
+                    self.game_state.player_2.bullets = ground_truth['p2']['bullets']
+                    self.game_state.player_2.grenades = ground_truth['p2']['grenades']
+                    #self.game_state.player_2.shield_time = ground_truth['p1']['shield_time']
+                    self.game_state.player_2.shield_health = ground_truth['p2']['shield_health']
+                    self.game_state.player_2.num_deaths = ground_truth['p2']['num_deaths']
+                    self.game_state.player_2.num_shield = ground_truth['p2']['num_shield']
+
+                    # queue_visualizer.put(ground_truth)
+
             queue_visualizer.put(self.game_state_in_dict)
-
-            ground_truth = queue_ground_truth.get()
-            if ground_truth['p1']['hp'] != (self.game_state.get_dict())['p1']['hp'] or ground_truth['p1']['action'] != (self.game_state.get_dict())['p1']['action'] or ground_truth['p1']['bullets'] != (self.game_state.get_dict())['p1']['bullets'] or ground_truth['p1']['grenades'] != (self.game_state.get_dict())['p1']['grenades'] or ground_truth['p1']['shield_health'] != (self.game_state.get_dict())['p1']['shield_health'] or ground_truth['p1']['num_deaths'] != (self.game_state.get_dict())['p1']['num_deaths'] or ground_truth['p1']['num_shield'] != (self.game_state.get_dict())['p1']['num_shield'] or ground_truth['p2']['hp'] != (self.game_state.get_dict())['p2']['hp'] or ground_truth['p2']['action'] != (self.game_state.get_dict())['p2']['action'] or ground_truth['p2']['bullets'] != (self.game_state.get_dict())['p2']['bullets'] or ground_truth['p2']['grenades'] != (self.game_state.get_dict())['p2']['grenades'] or ground_truth['p2']['shield_health'] != (self.game_state.get_dict())['p2']['shield_health'] or ground_truth['p2']['num_deaths'] != (self.game_state.get_dict())['p2']['num_deaths'] or ground_truth['p2']['num_shield'] != (self.game_state.get_dict())['p2']['num_shield']:
-
-                print("Predicted game state differs from the ground truth!")
-
-                self.game_state.player_1.hp = ground_truth['p1']['hp']
-                self.game_state.player_1.action = ground_truth['p1']['action']
-                self.game_state.player_1.bullets = ground_truth['p1']['bullets']
-                self.game_state.player_1.grenades = ground_truth['p1']['grenades']
-                #self.game_state.player_1.shield_time = ground_truth['p1']['shield_time']
-                self.game_state.player_1.shield_health = ground_truth['p1']['shield_health']
-                self.game_state.player_1.num_deaths = ground_truth['p1']['num_deaths']
-                self.game_state.player_1.num_shield = ground_truth['p1']['num_shield']
-
-                self.game_state.player_2.hp = ground_truth['p2']['hp']
-                self.game_state.player_2.action = ground_truth['p2']['action']
-                self.game_state.player_2.bullets = ground_truth['p2']['bullets']
-                self.game_state.player_2.grenades = ground_truth['p2']['grenades']
-                #self.game_state.player_2.shield_time = ground_truth['p1']['shield_time']
-                self.game_state.player_2.shield_health = ground_truth['p2']['shield_health']
-                self.game_state.player_2.num_deaths = ground_truth['p2']['num_deaths']
-                self.game_state.player_2.num_shield = ground_truth['p2']['num_shield']
-
-                queue_visualizer.put(ground_truth)
-            
 
 class EvalClient():
     def __init__(self):
@@ -397,7 +431,7 @@ class Visualizer():
         # self.has_received = False
 
 
-    # def on_message(self, client, userdata, message):
+    # def on_message(self, client, userdata, message): #put queue into userdata
     #     grenade_hit = str(message.payload.decode("utf-8"))
     #     if grenade_hit is not None:
     #         self.has_received = True
@@ -440,7 +474,7 @@ t5 = threading.Thread(target=visualizer.speak, args=())
 # t6 = threading.Thread(target=visualizer.listen, args=())
 t7 = threading.Thread(target=padd, args=())
 
-# ol = Overlay('design_1_wrapper.bit')
+# ol = Overlay('design_1_wrapper.bit', download = False)
 # dma = ol.axi_dma_0
 
 t1.start()
