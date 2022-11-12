@@ -18,8 +18,8 @@ import numpy as np
 import time
 from struct import *
 
-imu_time = 0
-length = 0
+# imu_time = 0
+# length = 0
 
 '''
 Between Viz and U96:
@@ -35,7 +35,6 @@ queue_game_state = queue.Queue() # AI -> GameMechanics (greande_hit_or_miss: boo
 queue_visualizer = queue.Queue() # AI -> Viz ("grenade": str), GM -> Viz (game_state: dict)
 queue_greande_hit_or_miss = queue.Queue() # Viz -> AI (grenade_hit_or_miss: bool)
 queue_eval_client = queue.Queue() # GM -> EvalClient (game_state: dict)
-
 queue_ground_truth = queue.Queue() # 
 
 '''
@@ -55,7 +54,6 @@ class Relay():
         self.address = ('', self.listening_port)
         self.header = 64
         self.format = 'utf-8'
-        
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(self.address)
 
@@ -68,13 +66,11 @@ class Relay():
             if message_length_in_byte:
                 message_length_in_int = int(message_length_in_byte)
                 message = connection.recv(message_length_in_int)
-                print(message)
                 queue_ai.put(message)
-                print(f"{Fore.GREEN}[MESSAGE RECEIVED] {address}: {message}{Style.RESET_ALL}")
+                # print(f"{Fore.GREEN}[MESSAGE RECEIVED] {address}: {message}{Style.RESET_ALL}")
 
                 connection.send("[MESSAGE RECEIVED] Your message is received!".encode(self.format))
-            
-        
+
         connection.close() # Do not need to close
 
     def run(self):
@@ -90,15 +86,8 @@ class Relay():
 
 class AI():
     def __init__(self):
-
-        self.grenade_counter = 0
-        self.shield_counter = 0
-        self.reload_counter = 0
-        self.logout_counter = 0
-        self.grenade_counter2 = 0
-        self.shield_counter2 = 0
-        self.reload_counter2 = 0
-        self.logout_counter2 = 0
+        
+        self.collect = False
 
         self.x1 = []
         self.y1 = []
@@ -106,7 +95,6 @@ class AI():
         self.gx1 = []
         self.gy1 = []
         self.gz1 = []
-        self.counter1 = 0
 
         self.x2 = []
         self.y2 = []
@@ -114,7 +102,6 @@ class AI():
         self.gx2 = []
         self.gy2 = []
         self.gz2 = []
-        self.counter2 = 0
 
     def ai(self):
         '''
@@ -196,30 +183,17 @@ class AI():
         elif output_buffer[0] == 5:
             return "logout"
         '''
-
         # For Testing
-        grenade_counter2 = 0
-        shield_counter2 = 0
-        reload_counter2 = 0
-        logout_counter2 = 0
-        for value in self.x2:
-            if value == 0:
-                reload_counter2 += 1
-            elif value == 1:
-                grenade_counter2 += 1
-            elif value == 2:
-                shield_counter2 += 1
-            elif value == 3:
-                logout_counter2 += 1
-        
-        if grenade_counter2 > shield_counter2 and grenade_counter2 > reload_counter2 and grenade_counter2 > logout_counter2:
-            return "grenade"
-        if shield_counter2 > grenade_counter2 and shield_counter2 > reload_counter2 and shield_counter2 > logout_counter2:
-            return "shield"
-        if reload_counter2 > grenade_counter2 and reload_counter2 > shield_counter2 and reload_counter2 > logout_counter2:
+        if self.x1[0] == 0:
             return "reload"
-        return "logout"
-
+        if self.x1[0] == 1:
+            return "grenade"
+        if self.x1[0] == 2:
+            return "shield"
+        if self.x1[0] == 3:
+            return "logout"
+        if self.x1[0] == 4:
+            return "none"
 
     def ai2(self):
         '''
@@ -301,35 +275,23 @@ class AI():
         elif output_buffer[0] == 5:
             return "logout"
         '''
-
         # For Testing
-        grenade_counter2 = 0
-        shield_counter2 = 0
-        reload_counter2 = 0
-        logout_counter2 = 0
-        for value in self.x2:
-            if value == 0:
-                reload_counter2 += 1
-            elif value == 1:
-                grenade_counter2 += 1
-            elif value == 2:
-                shield_counter2 += 1
-            elif value == 3:
-                logout_counter2 += 1
-        
-        if grenade_counter2 > shield_counter2 and grenade_counter2 > reload_counter2 and grenade_counter2 > logout_counter2:
-            return "grenade"
-        if shield_counter2 > grenade_counter2 and shield_counter2 > reload_counter2 and shield_counter2 > logout_counter2:
-            return "shield"
-        if reload_counter2 > grenade_counter2 and reload_counter2 > shield_counter2 and reload_counter2 > logout_counter2:
+        if self.x2[0] == 0:
             return "reload"
-        return "logout"
+        if self.x2[0] == 1:
+            return "grenade"
+        if self.x2[0] == 2:
+            return "shield"
+        if self.x2[0] == 3:
+            return "logout"
+        if self.x2[0] == 4:
+            return "none"
+
 
     def run(self):
         while True:
             sensor_reading = queue_ai.get()
 
-            # unpacked_sensor_reading = unpack('<b''6h''b''3h',  sensor_reading)
             unpacked_sensor_reading = unpack('<b''b''6h''b''2h''b',  sensor_reading)
             print(f"AI HAS RECEIVED SENSOR READING {unpacked_sensor_reading}")
 
@@ -351,173 +313,55 @@ class AI():
                 queue_game_state.put(action)
 
             elif unpacked_sensor_reading[0] == 87: # IMU 87
-                # global imu_time
-                # global length
-                # imu_time = time.time()
 
-                # Modify the positions as added a new byte to indicate player
-                if player == 1:
-                    if len(self.x1) != 50:
+                # For Testing
+                if unpacked_sensor_reading[2] != 4:
+                    self.collect = True
+                    
+                if self.collect == True:   
+                    # Modify the positions as added a new byte to indicate player
+                    if player == 1:
                         self.x1.append(unpacked_sensor_reading[2]) 
                         self.y1.append(unpacked_sensor_reading[3]) 
                         self.z1.append(unpacked_sensor_reading[4]) 
                         self.gx1.append(unpacked_sensor_reading[5]) 
                         self.gy1.append(unpacked_sensor_reading[6]) 
                         self.gz1.append(unpacked_sensor_reading[7])
-                    else:
-                        print("Error, sensor data FULL")
-                else:
-                    if len(self.x2) != 50:
+                    elif player == 2:
                         self.x2.append(unpacked_sensor_reading[2]) 
                         self.y2.append(unpacked_sensor_reading[3]) 
                         self.z2.append(unpacked_sensor_reading[4]) 
                         self.gx2.append(unpacked_sensor_reading[5]) 
                         self.gy2.append(unpacked_sensor_reading[6]) 
-                        self.gz2.append(unpacked_sensor_reading[7])
-                    else:
-                        print("Error, sensor data FULL")
 
                 if (len(self.x1) == 50):
-                    
+                    self.collect = False
                     action = self.ai()
 
-                    if action == "grenade":
-                        self.grenade_counter += 1
-                    elif action == "shield":
-                        self.shield_counter += 1
-                    elif action == "reload":
-                        self.reload_counter += 1
-                    elif action == "logout":
-                        self.logout_counter += 1
+                    self.x1.clear()
+                    self.y1.clear()
+                    self.z1.clear()
+                    self.gx1.clear()
+                    self.gy1.clear()
+                    self.gz1.clear()
 
-                    self.x1 = self.x1[:49]
-                    self.y1 = self.y1[:49]
-                    self.z1 = self.z1[:49]
-                    self.gx1 = self.gx1[:49]
-                    self.gy1 = self.gy1[:49]
-                    self.gz1 = self.gz1[:49]
+                    pred_action = f"{player} {action}"
+                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
+                    queue_game_state.put(pred_action)
+
 
                 if (len(self.x2) == 50):
-                    
+                    self.collect = False
                     action = self.ai2()
                     
-                    if action == "grenade":
-                        self.grenade_counter2 += 1
-                    elif action == "shield":
-                        self.shield_counter2 += 1
-                    elif action == "reload":
-                        self.reload_counter2 += 1
-                    elif action == "logout":
-                        self.logout_counter2 += 1
+                    self.x2.clear()
+                    self.y2.clear()
+                    self.z2.clear()
+                    self.gx2.clear()
+                    self.gy2.clear()
+                    self.gz2.clear()
 
-                    self.x2 = self.x2[:49]
-                    self.y2 = self.y2[:49]
-                    self.z2 = self.z2[:49]
-                    self.gx2 = self.gx2[:49]
-                    self.gy2 = self.gy2[:49]
-                    self.gz2 = self.gz2[:49]
-
-                if self.grenade_counter > 5:
-
-                    self.grenade_counter = 0
-                    self.shield_counter = 0
-                    self.reload_counter = 0
-                    self.logout_counter = 0
-
-                    pred_action = f"1 grenade"
-                    queue_game_state.put(pred_action) # grenade
-                        
-                    # is_hit = queue_greande_hit_or_miss.get()
-                        
-                    # For Testing
-                    is_hit = "t"
-                        
-                    if is_hit == "t":
-                        hit_action = f"2 hit_G"
-                        queue_game_state.put(hit_action)
-                    
-                elif self.reload_counter > 5:
-
-                    self.grenade_counter = 0
-                    self.shield_counter = 0
-                    self.reload_counter = 0
-                    self.logout_counter = 0
-
-                    pred_action = f"1 reload"
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
-                    queue_game_state.put(pred_action)
-
-                elif self.shield_counter > 5:
-
-                    self.grenade_counter = 0
-                    self.shield_counter = 0
-                    self.reload_counter = 0
-                    self.logout_counter = 0
-
-                    pred_action = f"1 shield"
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
-                    queue_game_state.put(pred_action)
-                
-                elif self.logout_counter > 5:
-
-                    self.grenade_counter = 0
-                    self.shield_counter = 0
-                    self.reload_counter = 0
-                    self.logout_counter = 0
-
-                    pred_action = f"1 logout"
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
-                    queue_game_state.put(pred_action)
-
-                if self.grenade_counter2 > 5:
-
-                    self.grenade_counter2 = 0
-                    self.shield_counter2 = 0
-                    self.reload_counter2 = 0
-                    self.logout_counter2 = 0
-
-                    pred_action = f"2 grenade"
-                    queue_game_state.put(pred_action) # grenade
-                        
-                    # is_hit = queue_greande_hit_or_miss.get()
-                        
-                    # For Testing
-                    is_hit = "t"
-                        
-                    if is_hit == "t":
-                        hit_action = f"1 hit_G"
-                        queue_game_state.put(hit_action)
-                    
-                elif self.reload_counter2 > 5:
-
-                    self.grenade_counter2 = 0
-                    self.shield_counter2 = 0
-                    self.reload_counter2 = 0
-                    self.logout_counter2 = 0
-
-                    pred_action = f"2 reload"
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
-                    queue_game_state.put(pred_action)
-
-                elif self.shield_counter2 > 5:
-
-                    self.grenade_counter2 = 0
-                    self.shield_counter2 = 0
-                    self.reload_counter2 = 0
-                    self.logout_counter2 = 0
-
-                    pred_action = f"2 shield"
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
-                    queue_game_state.put(pred_action)
-                
-                elif self.logout_counter2 > 5:
-
-                    self.grenade_counter2 = 0
-                    self.shield_counter2 = 0
-                    self.reload_counter2 = 0
-                    self.logout_counter2 = 0
-
-                    pred_action = f"2 logout"
+                    pred_action = f"{player} {action}"
                     print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
                     queue_game_state.put(pred_action)
 
@@ -527,8 +371,6 @@ class GameMechanics():
         self.p2_action = 'none'
         self.p1_ready = False
         self.p2_ready = False
-        # self.p1_hit = False
-        # self.p2_hit = False
         self.game_state = GameState()
         self.game_state_in_dict = self.game_state.get_dict()
     
@@ -538,10 +380,13 @@ class GameMechanics():
             
             # Added player ID
             player , action = curr_action.split(" ")
-            if player == "1" and self.p1_ready is False and not (action == "hit" or action == "hit_G"):
+
+            if action == "hit" or action == "hit_G":
+                print(curr_action)
+            elif player == "1" and self.p1_ready is False:
                 self.p1_action = action
                 self.p1_ready = True
-            elif player == "2" and self.p2_ready is False and not (action == "hit" or action == "hit_G"):
+            elif player == "2" and self.p2_ready is False:
                 self.p2_action = action
                 self.p2_ready = True
             else:
@@ -552,34 +397,53 @@ class GameMechanics():
             '''
             if logout need to make sure game ends! Viz job. Ext Comms can make program sleep.
             '''
-        
+
             self.game_state.update_players(curr_action)
             print(f"[GAME MECHANICS] Player states updated with {curr_action} :)")
-            self.game_state_in_dict = self.game_state.get_dict()
-            
+            self.game_state_in_dict = self.game_state.get_dict()               
+
             if self.p1_ready and self.p2_ready:
+                
+                if self.p1_action == "grenade":
+                    # is_hit = queue_greande_hit_or_miss.get()
+                    # For Testing
+                    is_hit = "t"
+                    if is_hit == "t":
+                        hit_action = f"2 hit_G"
+                        print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
+                        self.game_state_in_dict = self.game_state.get_dict()
+                        
+                if self.p2_action == "grenade":
+                    # is_hit = queue_greande_hit_or_miss.get()
+                    # For Testing
+                    is_hit = "t"
+                    if is_hit == "t":
+                        hit_action = f"1 hit_G"
+                        self.game_state.update_players(hit_action)
+                        print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
+                        self.game_state_in_dict = self.game_state.get_dict()
+
+                if self.game_state_in_dict["p1"]["action"] == "hit_G" or self.game_state_in_dict["p1"]["action"] == "hit":
+                    self.game_state_in_dict["p1"]["action"] = self.p1_action
+                if self.game_state_in_dict["p2"]["action"] == "hit_G" or self.game_state_in_dict["p2"]["action"] == "hit":
+                    self.game_state_in_dict["p2"]["action"] = self.p2_action
+
                 queue_eval_client.put(self.game_state_in_dict)
                 self.p1_ready = False
                 self.p2_ready = False
+                self.block1 = False
+                self.block2 = False
 
-            # Clear the other player's action
-            if player == '1':
-                self.game_state_in_dict['p2']['action'] = 'none'
-            elif player == '2':
-                self.game_state_in_dict['p1']['action'] = 'none'
-            
-            queue_visualizer.put(self.game_state_in_dict)
-            ground_truth = queue_ground_truth.get()
+                ground_truth = queue_ground_truth.get()
 
                 if ground_truth['p1']['hp'] != (self.game_state.get_dict())['p1']['hp'] or ground_truth['p1']['action'] != (self.game_state.get_dict())['p1']['action'] or ground_truth['p1']['bullets'] != (self.game_state.get_dict())['p1']['bullets'] or ground_truth['p1']['grenades'] != (self.game_state.get_dict())['p1']['grenades'] or ground_truth['p1']['shield_health'] != (self.game_state.get_dict())['p1']['shield_health'] or ground_truth['p1']['num_deaths'] != (self.game_state.get_dict())['p1']['num_deaths'] or ground_truth['p1']['num_shield'] != (self.game_state.get_dict())['p1']['num_shield'] or ground_truth['p2']['hp'] != (self.game_state.get_dict())['p2']['hp'] or ground_truth['p2']['action'] != (self.game_state.get_dict())['p2']['action'] or ground_truth['p2']['bullets'] != (self.game_state.get_dict())['p2']['bullets'] or ground_truth['p2']['grenades'] != (self.game_state.get_dict())['p2']['grenades'] or ground_truth['p2']['shield_health'] != (self.game_state.get_dict())['p2']['shield_health'] or ground_truth['p2']['num_deaths'] != (self.game_state.get_dict())['p2']['num_deaths'] or ground_truth['p2']['num_shield'] != (self.game_state.get_dict())['p2']['num_shield']:
-
+                    
                     print("Predicted game state differs from the ground truth!")
 
                     self.game_state.player_1.hp = ground_truth['p1']['hp']
                     self.game_state.player_1.action = ground_truth['p1']['action']
                     self.game_state.player_1.bullets = ground_truth['p1']['bullets']
                     self.game_state.player_1.grenades = ground_truth['p1']['grenades']
-                    #self.game_state.player_1.shield_time = ground_truth['p1']['shield_time']
                     self.game_state.player_1.shield_health = ground_truth['p1']['shield_health']
                     self.game_state.player_1.num_deaths = ground_truth['p1']['num_deaths']
                     self.game_state.player_1.num_shield = ground_truth['p1']['num_shield']
@@ -588,11 +452,17 @@ class GameMechanics():
                     self.game_state.player_2.action = ground_truth['p2']['action']
                     self.game_state.player_2.bullets = ground_truth['p2']['bullets']
                     self.game_state.player_2.grenades = ground_truth['p2']['grenades']
-                    #self.game_state.player_2.shield_time = ground_truth['p1']['shield_time']
                     self.game_state.player_2.shield_health = ground_truth['p2']['shield_health']
                     self.game_state.player_2.num_deaths = ground_truth['p2']['num_deaths']
                     self.game_state.player_2.num_shield = ground_truth['p2']['num_shield']
-
+            
+            # Clear the other player's action
+            if player == '1':
+                self.game_state_in_dict['p2']['action'] = 'none'
+            elif player == '2':
+                self.game_state_in_dict['p1']['action'] = 'none'
+            
+            queue_visualizer.put(self.game_state_in_dict)
 
 class EvalClient():
     def __init__(self):
@@ -690,7 +560,6 @@ class Visualizer():
         self.greande_action = 'g'
         self.has_received = False
 
-
     def on_message(self, client, userdata, message): #put queue into userdata
         grenade_hit = str(message.payload.decode("utf-8"))
         if grenade_hit is not None:
@@ -714,10 +583,6 @@ class Visualizer():
         if self.has_received == True:
             self.subscriber.loop_stop()
 
-    # recalibrated_result = queue_visualizer_recalibration.get()
-    # print(f'[VISUALIZER HAS RECEIVED RECALIBRATED RESULT] {recalibrated_result}')
-
-
 relay = Relay()
 ai = AI()
 game_mechanics = GameMechanics()
@@ -730,7 +595,6 @@ t3 = threading.Thread(target=game_mechanics.run, args=())
 t4 = threading.Thread(target=eval_client.run, args=())
 t5 = threading.Thread(target=visualizer.speak, args=())
 t6 = threading.Thread(target=visualizer.listen, args=())
-# t7 = threading.Thread(target=padd, args=())
 
 # ol = Overlay('design_1_wrapper.bit', download = False)
 # dma = ol.axi_dma_0
@@ -741,8 +605,6 @@ t3.start()
 t4.start()
 t5.start()
 t6.start()
-# t7.start()
-
 
 t1.join()
 t2.join()
@@ -750,4 +612,3 @@ t3.join()
 t4.join()
 t5.join()
 t6.join()
-# t7.join()

@@ -7,63 +7,60 @@ def main():
     print('Loading data')
     acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, extracted_data, y_train = load_data()
     result = []
-    test(acc_x[0], acc_y[0], acc_z[0], gyr_x[0], gyr_y[0], gyr_z[0])
-    
-    for i in range(30):
-        result.append(model(acc_x[i], acc_y[i], acc_z[i], gyr_x[i], gyr_y[i], gyr_z[i], extracted_data[i]))
+    test(acc_x[380], acc_y[380], acc_z[380], gyr_x[380], gyr_y[380], gyr_z[380])
+    print(acc_x[380])
+    print(extracted_data[380])
+    print(model(acc_x[380], acc_y[380], acc_z[380], gyr_x[380], gyr_y[380], gyr_z[380], extracted_data[380]))
+    #for i in range(30):
+    #    result.append(model(acc_x[i], acc_y[i], acc_z[i], gyr_x[i], gyr_y[i], gyr_z[i], extracted_data[i]))
 
-    counter = 0
-    for i in range(len(result)):
-        print(result[i])
-        print(y_train[i])
+    # counter = 0
+    # for i in range(len(result)):
+    #    print(result[i])
+    #    print(y_train[i])
     
-    print(counter / len(acc_x))
+    # print(counter / len(acc_x))
 
 
 def test(x, y, z, gx, gy, gz):
     final = []
-    for i in range(100):
+    for i in range(50):
         final.append([x[i], y[i], z[i], gx[i], gy[i], gz[i]])
     print(final)
 
 
-#Handles calculation for a node in a layer of 32 nodes with 128 inputs
-def node350_40(inputs, weights):
+def node50_40(inputs, weights):
     temp = 0
-    for i in range(100):
+    for i in range(50):
         temp += inputs[i] * weights[i]
     if (temp < 0):
         return 0
     return temp
 
 
-# Handle the processing of layer of 32 nodes with 128 inputs
-def layer350_40(inputs, weights):
+def layer50_40(inputs, weights):
     output = [ 0 for i in range(40)]
     for i in range(40):
-        output[i] = node350_40(inputs, weights[i])
+        output[i] = node50_40(inputs, weights[i])
     return output
 
 
-#Handles calculation for nodes in a layer of 32 nodes with 24 inputs
-def node24_40(inputs, weights):
+def node18_40(inputs, weights):
     temp = 0
-    for i in range(24):
+    for i in range(18):
         temp += inputs[i] * weights[i]
     if (temp < 0):
         return 0
     return temp
 
 
-# Handle the processing of layer of 32 nodes with 24 inputs
-def layer24_40(inputs, weights):
+def layer18_40(inputs, weights):
     output = [ 0 for i in range(40)]
     for i in range(40):
-        output[i] = node24_40(inputs, weights[i])
+        output[i] = node18_40(inputs, weights[i])
     return output
 
 
-#Handles calculation for nodes in a layer of 32 nodes with 32 inputs
 def node40_35(inputs, weights):
     temp = 0
     for i in range(40):
@@ -73,7 +70,6 @@ def node40_35(inputs, weights):
     return temp
 
 
-# Handle the processing of layer of 32 nodes with 32 inputs
 def layer40_35(inputs, weights):
     output = [ 0 for i in range(35)]
     for i in range(35):
@@ -81,8 +77,7 @@ def layer40_35(inputs, weights):
     return output
 
 
-#Handles calculation for nodes in a layer of 32 nodes with 128 inputs
-def node35_5(inputs, weights):
+def node35_4(inputs, weights):
     temp = 0
     for i in range(35):
         temp += inputs[i] * weights[i]
@@ -92,10 +87,10 @@ def node35_5(inputs, weights):
 
 
 # Handle the processing of layer of 5 nodes with 32 inputs
-def layer35_5(inputs, weights):
-    output = [ 0 for i in range(5)]
-    for i in range(5):
-        output[i] = node35_5(inputs, weights[i])
+def layer35_4(inputs, weights):
+    output = [ 0 for i in range(4)]
+    for i in range(4):
+        output[i] = node35_4(inputs, weights[i])
     return output
 
 
@@ -192,34 +187,34 @@ def model(acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, data):
             elif counter <= 40 + 35 + 40 + 35 + 40 + 35 + 40 + 35 + 40 + 35 + 40 + 35 + 40 + 35 + 35 + 5:
                 weight_final_2.append(b)
 
-    x_layer = layer350_40(acc_x, weight_x_1)
+    x_layer = layer50_40(acc_x, weight_x_1)
     x_layer = layer40_35(x_layer, weight_x_2)
 
-    y_layer = layer350_40(acc_y, weight_y_1)
+    y_layer = layer50_40(acc_y, weight_y_1)
     y_layer = layer40_35(y_layer, weight_y_2)
 
-    z_layer = layer350_40(acc_z, weight_z_1)
+    z_layer = layer50_40(acc_z, weight_z_1)
     z_layer = layer40_35(z_layer, weight_z_2)
 
-    gx_layer = layer350_40(gyr_x, weight_gx_1)
+    gx_layer = layer50_40(gyr_x, weight_gx_1)
     gx_layer = layer40_35(gx_layer, weight_gx_2)
 
-    gy_layer = layer350_40(gyr_y, weight_gy_1)
+    gy_layer = layer50_40(gyr_y, weight_gy_1)
     gy_layer = layer40_35(gy_layer, weight_gy_2)
 
-    gz_layer = layer350_40(gyr_z, weight_gz_1)
+    gz_layer = layer50_40(gyr_z, weight_gz_1)
     gz_layer = layer40_35(gz_layer, weight_gz_2)
 
-    data_layer = layer24_40(data, weight_data_1)
+    data_layer = layer18_40(data, weight_data_1)
     data_layer = layer40_35(data_layer, weight_data_2)
 
     final_layer = layer245_35(x_layer, y_layer, z_layer, gx_layer, gy_layer, gz_layer, data_layer, weight_final_1)
-    output = layer35_5(final_layer, weight_final_2)
+    output = layer35_4(final_layer, weight_final_2)
 
     max_value = 0
     max_index = 0
     print(output)
-    for i in range(5):
+    for i in range(4):
         if (output[i] > max_value):
             max_value = output[i]
             max_index = i + 1
@@ -237,48 +232,47 @@ def load_data():
     body_gyr_y = []
     body_gyr_z = []
 
-    with open("RealData2\\x.txt","r") as f:
+    with open("RealData\\x.txt","r") as f:
         for row in f:
             body_acc_x.append(row.strip().split(","))
 
-    with open("RealData2\\y.txt","r") as f:
+    with open("RealData\\y.txt","r") as f:
         for row in f:
             body_acc_y.append(row.strip().split(","))
 
-    with open("RealData2\\z.txt","r") as f:
+    with open("RealData\\z.txt","r") as f:
         for row in f:
             body_acc_z.append(row.strip().split(","))
 
-    with open("RealData2\\gx.txt","r") as f:
+    with open("RealData\\gx.txt","r") as f:
         for row in f:
             body_gyr_x.append(row.strip().split(","))
 
-    with open("RealData2\\gy.txt","r") as f:
+    with open("RealData\\gy.txt","r") as f:
         for row in f:
             body_gyr_y.append(row.strip().split(","))
 
-    with open("RealData2\\gz.txt","r") as f:
+    with open("RealData\\gz.txt","r") as f:
         for row in f:
             body_gyr_z.append(row.strip().split(","))
     
     print("Loading Training Labels . . .")
     
     label = []
-    with open("RealData2\\label.txt","r") as f:
+    with open("RealData\\label.txt","r") as f:
         
         for row in f:
             number = int(row.strip())
 
             if number == 1:
-                label.append([1,0,0,0,0])
+                label.append([1,0,0,0,])
             elif number == 2:
-                label.append([0,1,0,0,0])
+                label.append([0,1,0,0])
             elif number == 3:
-                label.append([0,0,1,0,0])
+                label.append([0,0,1,0])
             elif number == 4:
-                label.append([0,0,0,1,0])
-            else:
-                label.append([0,0,0,0,1])
+                label.append([0,0,0,1])
+
 
     body_acc_x = np.array(body_acc_x).astype(np.int16)
     body_acc_y = np.array(body_acc_y).astype(np.int16)

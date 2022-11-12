@@ -11,7 +11,7 @@
 #define VEST_BEETLE 5
 
 #define ACK_TIMEOUT 100
-#define DATA_INTERVAL 60
+#define DATA_INTERVAL 45
 
 const uint8_t IMU_ADDR = 0x68; // AD0 is logic low on the PCB
 const uint8_t ACC_REG = 0x3B;
@@ -81,12 +81,6 @@ void setup() {
 }
 
 void loop() {
-  /*
-  long currTime = millis();
-  if(currTime - prevTime >= DATA_INTERVAL) {
-      getIMUData();
-      prevTime = currTime;
-  }*/
       
   if (receivedFirstHS && !handshakeSuccess) { 
       long currTime = millis();

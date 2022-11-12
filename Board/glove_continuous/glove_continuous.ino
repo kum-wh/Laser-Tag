@@ -4,14 +4,14 @@
 #include <Wire.h>
 #include <Ewma.h>
 
-#define PLAYER_NUM 2
+#define PLAYER_NUM 1
 
 #define GLOVE_BEETLE 3
 #define GUN_BEETLE 4
 #define VEST_BEETLE 5
 
 #define ACK_TIMEOUT 100
-#define DATA_INTERVAL 60
+#define DATA_INTERVAL 45
 
 const uint8_t IMU_ADDR = 0x68; // AD0 is logic low on the PCB
 const uint8_t ACC_REG = 0x3B;
@@ -74,6 +74,11 @@ void setup() {
 }
 
 void loop() {
+//  long currTime = millis();
+//      if(currTime - prevTime >= DATA_INTERVAL) {
+//        getIMUData();
+//        prevTime = currTime;
+//      }
   if (receivedFirstHS && !handshakeSuccess) { 
       long currTime = millis();
       if(currTime - prevTime >= ACK_TIMEOUT) { 

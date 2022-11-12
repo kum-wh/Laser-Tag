@@ -32,4 +32,6 @@ class Actions:
     grenade = "grenade"
     reload  = "reload"
     logout  = "logout"
+    hit = "hit"
+    hit_G = "hit_G"
     all = [no, shoot, shield, grenade, reload]

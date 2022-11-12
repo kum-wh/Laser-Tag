@@ -1,28 +1,28 @@
 import socket
-import sshtunnel
+# import sshtunnel
 import queue
 import threading
 
 SERVER = '192.168.95.235'
-PORT = 4002
+PORT = 4700
 ADDRESS = (SERVER, PORT)
 FORMAT = 'utf-8'
 HEADER = 64
 
 queue_sensor_data = queue.Queue()
-
+'''
 def ssh_tunnel():
     SUNFIRE_USERNAME = "kum-wh"
     SUNFIRE_PASSWORD = "uigeksj2"
     XILINX_USERNAME = "xilinx"
     XILINX_PASSWORD = "xilinx"
 
-    SUNFIRE = "stu.comp.nus.edu.sg"
+    SUNFIRE = "sunfire.comp.nus.edu.sg"
     XILINX = "192.168.95.235"
     LOCAL_HOST = 'localhost'
 
     SSH_PORT = 22
-    PORT = 4002
+    PORT = 4223
 
     tunnel1 = sshtunnel.open_tunnel(
         ssh_address_or_host=(SUNFIRE, SSH_PORT),
@@ -46,12 +46,15 @@ def ssh_tunnel():
     tunnel2.start()
     print(f"Connection to tunnel2 {XILINX}:{PORT} established!")
     print("LOCAL PORT:", tunnel2.local_bind_port)
-
+''''
 
 class DataRelay:
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client.connect(ADDRESS)
+        try:
+            self.client.connect(ADDRESS)
+        except Exception as e:
+            print(e)
 
     def send(self, message):
         message_length = len(message)
@@ -72,7 +75,7 @@ class DataRelay:
 
 
 if __name__ == '__main__':
-    ssh_tunnel()
+    # ssh_tunnel()
 
     data_relay = DataRelay()
     if data_relay is not None:
@@ -91,7 +94,7 @@ if __name__ == '__main__':
         elif action1 == "V": # Hit
             queue_sensor_data.put(b'V\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         elif action1 == "R": #reload
-            for i in range(50):
+            for i in range(46):
                 queue_sensor_data.put(b'W\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         elif action1 == "G": # Grenade
             for i in range(50):
@@ -104,14 +107,14 @@ if __name__ == '__main__':
                 queue_sensor_data.put(b'W\x01\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         elif action1 == "N": # None
             for i in range(20):
-                queue_sensor_data.put(b'W\x01\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+                queue_sensor_data.put(b'I\x01\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
 
         if action2 == "F": # shoot
             queue_sensor_data.put(b'G\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         elif action2 == "V": # Hit
             queue_sensor_data.put(b'V\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         elif action2 == "R": #reload
-            for i in range(50):
+            for i in range(46):
                 queue_sensor_data.put(b'W\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         elif action2 == "G": # Grenade
             for i in range(50):
@@ -124,4 +127,4 @@ if __name__ == '__main__':
                 queue_sensor_data.put(b'W\x02\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         elif action2 == "N": # None
             for i in range(20):
-                queue_sensor_data.put(b'W\x02\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+                queue_sensor_data.put(b'I\x02\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')

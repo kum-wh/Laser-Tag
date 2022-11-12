@@ -5,9 +5,23 @@ from sklearn.model_selection import train_test_split
 
 EPOCHS = 100
 
+'''
+if output_buffer[0] == 1:
+    return "grenade"
+elif output_buffer[0] == 2:
+    return "shield"
+elif output_buffer[0] == 3:
+    return "reload"
+elif output_buffer[0] == 4:
+    return "logout"
+elif output_buffer[0] == 5:
+    return "none"   
+'''
+
 def main():
     
     acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, extracted_data, y_label = load_data()
+    
     acc_x_train, acc_x_test, acc_y_train, acc_y_test, acc_z_train, acc_z_test, gyr_x_train, gyr_x_test, gyr_y_train, gyr_y_test, gyr_z_train, gyr_z_test, extracted_data_train, extracted_data_test, y_train, y_test = train_test_split(acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z, extracted_data, y_label, test_size=0.25)
     
     model = get_model()
@@ -28,7 +42,23 @@ def main():
     convert_to_C()
 
 
-def import_data2():
+def import_data():
+
+    with open("RealData\\label.txt","w") as f:
+        f.write("")
+    with open("RealData\\x.txt","w") as f:
+        f.write("")
+    with open("RealData\\y.txt","w") as f:
+        f.write("")
+    with open("RealData\\z.txt","w") as f:
+        f.write("")
+    with open("RealData\\gx.txt","w") as f:
+        f.write("")
+    with open("RealData\\gy.txt","w") as f:
+        f.write("")
+    with open("RealData\\gz.txt","w") as f:
+        f.write("")
+
     with open("..\\Relay_Node\\RealData\\grenade.txt","r") as f:
         x_array = []
         y_array = []
@@ -38,28 +68,28 @@ def import_data2():
         gz_array = []
 
         for row in f:
-            values = row.replace("x","").split("\")
-            x_array.append(int(values[2], base=16))
-            y_array.append(int(values[3], base=16))
-            z_array.append(int(values[4], base=16))
-            gx_array.append(int(values[5], base=16))
-            gy_array.append(int(values[6], base=16))
-            gz_array.append(int(values[7], base=16))
+            values = row.replace("[","").replace("]","").replace(" ","").strip().split(",")
+            x_array.append(int(values[0]))
+            y_array.append(int(values[1]))
+            z_array.append(int(values[2]))
+            gx_array.append(int(values[3]))
+            gy_array.append(int(values[4]))
+            gz_array.append(int(values[5]))
             if len(x_array) == 50:
                 with open("RealData\\label.txt","a") as f2:
-                    f.write("1")
+                    f2.write("1\n")
                 with open("RealData\\x.txt","a") as fx:
-                    f.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\y.txt","a") as fx:
-                    f.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\z.txt","a") as fx:
-                    f.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gx.txt","a") as fx:
-                    f.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gy.txt","a") as fx:
-                    f.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gz.txt","a") as fx:
-                    f.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                    fx.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\y.txt","a") as fy:
+                    fy.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\z.txt","a") as fz:
+                    fz.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gx.txt","a") as fgx:
+                    fgx.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gy.txt","a") as fgy:
+                    fgy.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gz.txt","a") as fgz:
+                    fgz.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
                 x_array = []
                 y_array = []
                 z_array = []
@@ -77,28 +107,28 @@ def import_data2():
         gz_array = []
 
         for row in f:
-            values = row.replace("x","").split("\")
-            x_array.append(int(values[2], base=16))
-            y_array.append(int(values[3], base=16))
-            z_array.append(int(values[4], base=16))
-            gx_array.append(int(values[5], base=16))
-            gy_array.append(int(values[6], base=16))
-            gz_array.append(int(values[7], base=16))
+            values = row.replace("[","").replace("]","").replace(" ","").strip().split(",")
+            x_array.append(int(values[0]))
+            y_array.append(int(values[1]))
+            z_array.append(int(values[2]))
+            gx_array.append(int(values[3]))
+            gy_array.append(int(values[4]))
+            gz_array.append(int(values[5]))
             if len(x_array) == 50:
                 with open("RealData\\label.txt","a") as f2:
-                    f.write("2")
+                    f2.write("2\n")
                 with open("RealData\\x.txt","a") as fx:
-                    f.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\y.txt","a") as fx:
-                    f.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\z.txt","a") as fx:
-                    f.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gx.txt","a") as fx:
-                    f.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gy.txt","a") as fx:
-                    f.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gz.txt","a") as fx:
-                    f.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                    fx.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\y.txt","a") as fy:
+                    fy.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\z.txt","a") as fz:
+                    fz.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gx.txt","a") as fgx:
+                    fgx.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gy.txt","a") as fgy:
+                    fgy.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gz.txt","a") as fgz:
+                    fgz.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
                 x_array = []
                 y_array = []
                 z_array = []
@@ -115,35 +145,35 @@ def import_data2():
         gz_array = []
 
         for row in f:
-            values = row.replace("x","").split("\")
-            x_array.append(int(values[2], base=16))
-            y_array.append(int(values[3], base=16))
-            z_array.append(int(values[4], base=16))
-            gx_array.append(int(values[5], base=16))
-            gy_array.append(int(values[6], base=16))
-            gz_array.append(int(values[7], base=16))
+            values = row.replace("[","").replace("]","").replace(" ","").strip().split(",")
+            x_array.append(int(values[0]))
+            y_array.append(int(values[1]))
+            z_array.append(int(values[2]))
+            gx_array.append(int(values[3]))
+            gy_array.append(int(values[4]))
+            gz_array.append(int(values[5]))
             if len(x_array) == 50:
                 with open("RealData\\label.txt","a") as f2:
-                    f.write("3")
+                    f2.write("3\n")
                 with open("RealData\\x.txt","a") as fx:
-                    f.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\y.txt","a") as fx:
-                    f.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\z.txt","a") as fx:
-                    f.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gx.txt","a") as fx:
-                    f.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gy.txt","a") as fx:
-                    f.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gz.txt","a") as fx:
-                    f.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                    fx.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\y.txt","a") as fy:
+                    fy.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\z.txt","a") as fz:
+                    fz.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gx.txt","a") as fgx:
+                    fgx.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gy.txt","a") as fgy:
+                    fgy.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gz.txt","a") as fgz:
+                    fgz.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
                 x_array = []
                 y_array = []
                 z_array = []
                 gx_array = []
                 gy_array = []
                 gz_array = []
-
+    
     with open("..\\Relay_Node\\RealData\\none.txt") as f:
         x_array = []
         y_array = []
@@ -153,35 +183,35 @@ def import_data2():
         gz_array = []
 
         for row in f:
-            values = row.replace("x","").split("\")
-            x_array.append(int(values[2], base=16))
-            y_array.append(int(values[3], base=16))
-            z_array.append(int(values[4], base=16))
-            gx_array.append(int(values[5], base=16))
-            gy_array.append(int(values[6], base=16))
-            gz_array.append(int(values[7], base=16))
+            values = row.replace("[","").replace("]","").replace(" ","").strip().split(",")
+            x_array.append(int(values[0]))
+            y_array.append(int(values[1]))
+            z_array.append(int(values[2]))
+            gx_array.append(int(values[3]))
+            gy_array.append(int(values[4]))
+            gz_array.append(int(values[5]))
             if len(x_array) == 50:
                 with open("RealData\\label.txt","a") as f2:
-                    f.write("4")
+                    f2.write("5\n")
                 with open("RealData\\x.txt","a") as fx:
-                    f.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\y.txt","a") as fx:
-                    f.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\z.txt","a") as fx:
-                    f.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gx.txt","a") as fx:
-                    f.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gy.txt","a") as fx:
-                    f.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gz.txt","a") as fx:
-                    f.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                    fx.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\y.txt","a") as fy:
+                    fy.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\z.txt","a") as fz:
+                    fz.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gx.txt","a") as fgx:
+                    fgx.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gy.txt","a") as fgy:
+                    fgy.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gz.txt","a") as fgz:
+                    fgz.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
                 x_array = []
                 y_array = []
                 z_array = []
                 gx_array = []
                 gy_array = []
                 gz_array = []
-
+    
     with open("..\\Relay_Node\\RealData\\logout.txt") as f:
         x_array = []
         y_array = []
@@ -192,27 +222,27 @@ def import_data2():
 
         for row in f:
             values = row.replace("[","").replace("]","").replace(" ","").strip().split(",")
-            x_array.append(int(values[2]))
-            y_array.append(int(values[3]))
-            z_array.append(int(values[4]))
-            gx_array.append(int(values[5]))
-            gy_array.append(int(values[6]))
-            gz_array.append(int(values[7]))
+            x_array.append(int(values[0]))
+            y_array.append(int(values[1]))
+            z_array.append(int(values[2]))
+            gx_array.append(int(values[3]))
+            gy_array.append(int(values[4]))
+            gz_array.append(int(values[5]))
             if len(x_array) == 50:
                 with open("RealData\\label.txt","a") as f2:
-                    f.write("5")
+                    f2.write("4\n")
                 with open("RealData\\x.txt","a") as fx:
-                    f.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\y.txt","a") as fx:
-                    f.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\z.txt","a") as fx:
-                    f.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gx.txt","a") as fx:
-                    f.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gy.txt","a") as fx:
-                    f.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
-                with open("RealData\\gz.txt","a") as fx:
-                    f.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                    fx.write(str(x_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\y.txt","a") as fy:
+                    fy.write(str(y_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\z.txt","a") as fz:
+                    fz.write(str(z_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gx.txt","a") as fgx:
+                    fgx.write(str(gx_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gy.txt","a") as fgy:
+                    fgy.write(str(gy_array).replace("[","").replace("]","").replace(" ","") + "\n")
+                with open("RealData\\gz.txt","a") as fgz:
+                    fgz.write(str(gz_array).replace("[","").replace("]","").replace(" ","") + "\n")
                 x_array = []
                 y_array = []
                 z_array = []
@@ -223,7 +253,7 @@ def import_data2():
 
 def load_data():
     
-    load_data2()
+    import_data()
     print("Loading Training Data . . .")
 
     body_acc_x = []
@@ -235,27 +265,27 @@ def load_data():
 
     with open("RealData\\x.txt","r") as f:
         for row in f:
-            body_acc_x.append(row.replace("[","").replace("]","").strip().split(","))
+            body_acc_x.append(row.strip().split(","))
 
     with open("RealData\\y.txt","r") as f:
         for row in f:
-            body_acc_y.append(row.replace("[","").replace("]","").strip().split(","))
+            body_acc_y.append(row.strip().split(","))
 
     with open("RealData\\z.txt","r") as f:
         for row in f:
-            body_acc_z.append(row.replace("[","").replace("]","").strip().split(","))
+            body_acc_z.append(row.strip().split(","))
 
     with open("RealData\\gx.txt","r") as f:
         for row in f:
-            body_gyr_x.append(row.replace("[","").replace("]","").strip().split(","))
+            body_gyr_x.append(row.strip().split(","))
 
     with open("RealData\\gy.txt","r") as f:
         for row in f:
-            body_gyr_y.append(row.replace("[","").replace("]","").strip().split(","))
+            body_gyr_y.append(row.strip().split(","))
 
     with open("RealData\\gz.txt","r") as f:
         for row in f:
-            body_gyr_z.append(row.replace("[","").replace("]","").strip().split(","))
+            body_gyr_z.append(row.strip().split(","))
     
     print("Loading Training Labels . . .")
     
@@ -275,7 +305,19 @@ def load_data():
                 label.append([0,0,0,1,0])
             else:
                 label.append([0,0,0,0,1])
+        
+        # for row in f:
+        #     number = int(row.strip())
 
+        #     if number == 1:
+        #         label.append([1,0,0,0])
+        #     elif number == 2:
+        #         label.append([0,1,0,0])
+        #     elif number == 3:
+        #         label.append([0,0,1,0])
+        #     elif number == 4:
+        #         label.append([0,0,0,1])
+                
     body_acc_x = np.array(body_acc_x).astype(np.int16)
     body_acc_y = np.array(body_acc_y).astype(np.int16)
     body_acc_z = np.array(body_acc_z).astype(np.int16)
@@ -285,7 +327,8 @@ def load_data():
     extracted_data = extract_data(body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z)
 
     return body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z, extracted_data, np.array(label).astype(np.int16)
-            
+
+
 def extract_data(body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, body_gyr_z):
     
     acc_x_mean = np.mean(body_acc_x, axis=1).reshape(-1,1)
@@ -294,7 +337,14 @@ def extract_data(body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, bod
     gyr_x_mean = np.mean(body_gyr_x, axis=1).reshape(-1,1)
     gyr_y_mean = np.mean(body_gyr_y, axis=1).reshape(-1,1)
     gyr_z_mean = np.mean(body_gyr_z, axis=1).reshape(-1,1)
-
+    '''
+    sd_acc_x = np.std(body_acc_x, axis=1).reshape(-1,1)
+    sd_acc_y = np.std(body_acc_y, axis=1).reshape(-1,1)
+    sd_acc_z = np.std(body_acc_z, axis=1).reshape(-1,1)
+    sd_gyr_x = np.std(body_gyr_x, axis=1).reshape(-1,1)
+    sd_gyr_y = np.std(body_gyr_y, axis=1).reshape(-1,1)
+    sd_gyr_z = np.std(body_gyr_z, axis=1).reshape(-1,1)
+    '''
     max_acc_x = np.amax(body_acc_x, axis=1).reshape(-1,1)
     max_acc_y = np.amax(body_acc_y, axis=1).reshape(-1,1)
     max_acc_z = np.amax(body_acc_z, axis=1).reshape(-1,1)
@@ -310,6 +360,7 @@ def extract_data(body_acc_x, body_acc_y, body_acc_z, body_gyr_x, body_gyr_y, bod
     min_gyr_z = np.amin(body_gyr_z, axis=1).reshape(-1,1)
 
     return np.concatenate((acc_x_mean, acc_y_mean, acc_z_mean, gyr_x_mean, gyr_y_mean, gyr_z_mean, max_acc_x, max_acc_y, max_acc_z, max_gyr_x, max_gyr_y, max_gyr_z, min_acc_x, min_acc_y, min_acc_z, min_gyr_x, min_gyr_y, min_gyr_z), axis=1)
+    # return np.concatenate((acc_x_mean, acc_y_mean, acc_z_mean, gyr_x_mean, gyr_y_mean, gyr_z_mean, sd_acc_x, sd_acc_y, sd_acc_z, sd_gyr_x, sd_gyr_y, sd_gyr_z, max_acc_x, max_acc_y, max_acc_z, max_gyr_x, max_gyr_y, max_gyr_z, min_acc_x, min_acc_y, min_acc_z, min_gyr_x, min_gyr_y, min_gyr_z), axis=1)
 
 
 def write_weight(model):
@@ -398,7 +449,7 @@ def convert_to_C():
             "Real-Weights\\layerdata1.txt",
             "Real-Weights\\layerdata2.txt",
             "Real-Weights\\layerfinal1.txt",
-            "Real-Weights\\layerfinal2.txt"
+            "Real-Weights\\layerfinal2.txt",
             ]
     
     for f in files:
@@ -413,6 +464,7 @@ def get_model():
     inputD = tf.keras.layers.Input(shape=(50,1))
     inputE = tf.keras.layers.Input(shape=(50,1))
     inputF = tf.keras.layers.Input(shape=(50,1))
+    # inputG = tf.keras.layers.Input(shape=(24,))
     inputG = tf.keras.layers.Input(shape=(18,))
 
     data = tf.keras.layers.Dense(40, activation="relu", use_bias=False)(inputG)
@@ -461,6 +513,7 @@ def get_model():
     final = tf.keras.layers.Dense(35, activation="relu", use_bias=False)(combined)
     final = tf.keras.layers.Dropout(0.5)(final)
     final = tf.keras.layers.Dense(5, activation="softmax", use_bias=False)(final)
+    # final = tf.keras.layers.Dense(4, activation="softmax", use_bias=False)(final)
 
     model = tf.keras.Model(inputs=[x.input, y.input, z.input, g_x.input, g_y.input, g_z.input, data.input], outputs=final)
 

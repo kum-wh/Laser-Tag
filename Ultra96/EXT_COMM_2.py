@@ -12,14 +12,11 @@ import json
 import paho.mqtt.client as mqtt 
 from colorama import Fore
 from colorama import Style
-# from pynq import Overlay
-# from pynq import allocate
+from pynq import Overlay
+from pynq import allocate
 import numpy as np
 import time
 from struct import *
-
-imu_time = 0
-length = 0
 
 '''
 Between Viz and U96:
@@ -29,33 +26,20 @@ grenade query: str ("g")
 grenade_hit_or_miss: str ("t" or "f")
 game_state: JSON
 '''
-
 queue_ai = queue.Queue() # Relay -> AI (sensor readings: str)
 queue_game_state = queue.Queue() # AI -> GameMechanics (greande_hit_or_miss: bool, non_grenade_action: str)
 queue_visualizer = queue.Queue() # AI -> Viz ("grenade": str), GM -> Viz (game_state: dict)
 queue_greande_hit_or_miss = queue.Queue() # Viz -> AI (grenade_hit_or_miss: bool)
-queue_eval_client = queue.Queue() # GM -> EvalClient (game_state: dict)
-
-queue_ground_truth = queue.Queue() # 
-
-'''
-def padd():
-    while True:
-        if ((time.time() - imu_time > 1) and length != 0):
-            #print("INSIDE ELIF")
-            for i in range(100 - length):
-                queue_ai.put(b'W\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
-            time.sleep(1)
-'''
+# queue_eval_client = queue.Queue() # GM -> EvalClient (game_state: dict)
+queue_ground_truth = queue.Queue()
 
 class Relay():
     def __init__(self):
         self.server_ip_address = 'localhost'
-        self.listening_port = 4002 # Change to 4002
+        self.listening_port = 4002
         self.address = ('', self.listening_port)
         self.header = 64
         self.format = 'utf-8'
-        
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(self.address)
 
@@ -68,13 +52,11 @@ class Relay():
             if message_length_in_byte:
                 message_length_in_int = int(message_length_in_byte)
                 message = connection.recv(message_length_in_int)
-                # print(message)
                 queue_ai.put(message)
                 # print(f"{Fore.GREEN}[MESSAGE RECEIVED] {address}: {message}{Style.RESET_ALL}")
 
                 connection.send("[MESSAGE RECEIVED] Your message is received!".encode(self.format))
             
-        
         connection.close() # Do not need to close
 
     def run(self):
@@ -91,8 +73,6 @@ class Relay():
 class AI():
     def __init__(self):
         
-        self.collect = False
-
         self.x1 = []
         self.y1 = []
         self.z1 = []
@@ -107,9 +87,30 @@ class AI():
         self.gy2 = []
         self.gz2 = []
 
+    def padder1(self):
+        if len(self.x1) != 50:
+            print("Packet Not 50 for Player1")
+            queue_visualizer.put("bdgun1")
+            self.x1.clear()
+            self.y1.clear()
+            self.z1.clear()
+            self.gx1.clear()
+            self.gy1.clear()
+            self.gz1.clear()
+    
+    def padder2(self):
+        if len(self.x2) != 50:
+            print("Packet Not 50 for Player2")
+            queue_visualizer.put("bdgun2")
+            self.x2.clear()
+            self.y2.clear()
+            self.z2.clear()
+            self.gx2.clear()
+            self.gy2.clear()
+            self.gz2.clear()
 
-    def ai(self, input_action):
-        '''
+    def ai(self):
+
         x_mean = np.mean(self.x1)
         y_mean = np.mean(self.y1)
         z_mean = np.mean(self.z1)
@@ -162,7 +163,6 @@ class AI():
         final.append(int(gx_min))
         final.append(int(gy_min))
         final.append(int(gz_min))
-
         
         input_buffer = allocate(shape=(318,), dtype=np.intc)
         output_buffer = allocate(shape=(1,), dtype=np.intc)
@@ -184,26 +184,14 @@ class AI():
         elif output_buffer[0] == 3:
             return "reload"
         elif output_buffer[0] == 4:
-            return "none"
+            return "logout"
         elif output_buffer[0] == 5:
-            return "logout"
-        '''
-        '''
-        # For Testing
-        if input_action == 0:
-            return "reload"
-        if input_action == 1:
-            return "grenade"
-        if input_action == 2:
-            return "shield"
-        if input_action == 3:
-            return "logout"
-        '''
-        return "reload"
+            return "none"
+        else:
+            return "none"
 
+    def ai2(self):
 
-    def ai2(self, input_action):
-        '''
         x_mean = np.mean(self.x2)
         y_mean = np.mean(self.y2)
         z_mean = np.mean(self.z2)
@@ -256,8 +244,7 @@ class AI():
         final2.append(int(gx_min))
         final2.append(int(gy_min))
         final2.append(int(gz_min))
-
-        
+ 
         input_buffer = allocate(shape=(318,), dtype=np.intc)
         output_buffer = allocate(shape=(1,), dtype=np.intc)
 
@@ -278,29 +265,15 @@ class AI():
         elif output_buffer[0] == 3:
             return "reload"
         elif output_buffer[0] == 4:
-            return "none"
+            return "logout"
         elif output_buffer[0] == 5:
-            return "logout"
-        '''
-        '''
-        # For Testing
-        if input_action == 0:
-            return "reload"
-        if input_action == 1:
-            return "grenade"
-        if input_action == 2:
-            return "shield"
-        if input_action == 3:
-            return "logout"
-        '''
-        return "reload"
-
+            return "none"
+        else:
+            return "none"
 
     def run(self):
         while True:
             sensor_reading = queue_ai.get()
-
-            # unpacked_sensor_reading = unpack('<b''6h''b''3h',  sensor_reading)
             unpacked_sensor_reading = unpack('<b''b''6h''b''2h''b',  sensor_reading)
             print(f"AI HAS RECEIVED SENSOR READING {unpacked_sensor_reading}")
 
@@ -321,35 +294,62 @@ class AI():
                 action = f"{player} hit"
                 queue_game_state.put(action)
 
-            elif unpacked_sensor_reading[0] == 87: # IMU 87
-                # global imu_time
-                # global length
-                # imu_time = time.time()
-                # For Testing
-                # input_action = unpacked_sensor_reading[2]
+            elif unpacked_sensor_reading[0] == 73:
+                print("Invalid Data received")
 
-                if unpacked_sensor_reading[2] > 75 or unpacked_sensor_reading[3] > 75 or unpacked_sensor_reading[4] > 75 or unpacked_sensor_reading[5] > 80 or unpacked_sensor_reading[6] > 80 or unpacked_sensor_reading[7] > 80:
-                    self.collect = True
-                    
-                if self.collect == True:   
-                    # Modify the positions as added a new byte to indicate player
-                    if player == 1:
-                        self.x1.append(unpacked_sensor_reading[2]) 
-                        self.y1.append(unpacked_sensor_reading[3]) 
-                        self.z1.append(unpacked_sensor_reading[4]) 
-                        self.gx1.append(unpacked_sensor_reading[5]) 
-                        self.gy1.append(unpacked_sensor_reading[6]) 
-                        self.gz1.append(unpacked_sensor_reading[7])
-                    elif player == 2:
-                        self.x2.append(unpacked_sensor_reading[2]) 
-                        self.y2.append(unpacked_sensor_reading[3]) 
-                        self.z2.append(unpacked_sensor_reading[4]) 
-                        self.gx2.append(unpacked_sensor_reading[5]) 
-                        self.gy2.append(unpacked_sensor_reading[6]) 
+            elif unpacked_sensor_reading[0] == 68: # Disconnected
+                if player == 1:
+                    queue_visualizer.put("bdgun1")
+                    self.x1.clear()
+                    self.y1.clear()
+                    self.z1.clear()
+                    self.gx1.clear()
+                    self.gy1.clear()
+                    self.gz1.clear()
+                elif player == 2:
+                    queue_visualizer.put("bdgun2")
+                    self.x2.clear()
+                    self.y2.clear()
+                    self.z2.clear()
+                    self.gx2.clear()
+                    self.gy2.clear()
+                    self.gz2.clear()
+
+            elif unpacked_sensor_reading[0] == 67: # Connected
+                if player == 1:
+                    queue_visualizer.put("bc1")
+                elif player == 2:
+                    queue_visualizer.put("bc2")
+
+            elif unpacked_sensor_reading[0] == 87: # IMU 87
+
+                # Modify the positions as added a new byte to indicate player
+                if player == 1:
+                    if len(self.x1) == 1:
+                        delay_IMU1 = Timer(0.5, self.padder1, args=())
+                        delay_IMU1.daemon = True
+                        delay_IMU1.start()
+                    self.x1.append(unpacked_sensor_reading[2]) 
+                    self.y1.append(unpacked_sensor_reading[3]) 
+                    self.z1.append(unpacked_sensor_reading[4]) 
+                    self.gx1.append(unpacked_sensor_reading[5]) 
+                    self.gy1.append(unpacked_sensor_reading[6])
+                    self.gz1.append(unpacked_sensor_reading[7])
+                elif player == 2:
+                    if len(self.x2) == 1:
+                        delay_IMU2 = Timer(0.5, self.padder2, args=())
+                        delay_IMU2.daemon = True
+                        delay_IMU2.start()
+                    self.x2.append(unpacked_sensor_reading[2]) 
+                    self.y2.append(unpacked_sensor_reading[3]) 
+                    self.z2.append(unpacked_sensor_reading[4]) 
+                    self.gx2.append(unpacked_sensor_reading[5]) 
+                    self.gy2.append(unpacked_sensor_reading[6])
+                    self.gz2.append(unpacked_sensor_reading[6])
 
                 if (len(self.x1) == 50):
-                    self.collect = False
-                    action = self.ai(input_action)
+                    delay_IMU1.cancel()
+                    action = self.ai()
 
                     self.x1.clear()
                     self.y1.clear()
@@ -358,14 +358,16 @@ class AI():
                     self.gy1.clear()
                     self.gz1.clear()
 
-                    pred_action = f"{player} {action}"
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
-                    queue_game_state.put(pred_action)
-
+                    if action != "none":
+                        pred_action = f"{player} {action}"
+                        print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
+                        queue_game_state.put(pred_action)
+                    else:
+                        print("Action is none")
 
                 if (len(self.x2) == 50):
-                    self.collect = False
-                    action = self.ai2(input_action)
+                    delay_IMU2.cancel()
+                    action = self.ai2()
                     
                     self.x2.clear()
                     self.y2.clear()
@@ -374,10 +376,12 @@ class AI():
                     self.gy2.clear()
                     self.gz2.clear()
 
-                    pred_action = f"{player} {action}"
-                    print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
-                    queue_game_state.put(pred_action)
-
+                    if action != "none":
+                        pred_action = f"{player} {action}"
+                        print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
+                        queue_game_state.put(pred_action)
+                    else: 
+                        print("Action is none")
 
 
 class GameMechanics():
@@ -399,33 +403,11 @@ class GameMechanics():
             if action == "hit" or action == "hit_G":
                 print(curr_action)
             elif player == "1" and self.p1_ready is False:
-                if action == "grenade":
-                    # is_hit = queue_greande_hit_or_miss.get()
-                    # For Testing
-                    is_hit = "t"
-                    if is_hit == "t":
-                        hit_action = f"2 hit_G"
-                        self.game_state.update_players(hit_action)
-                        print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
-                    self.p1_action = action
-                    self.p1_ready = True
-                else:
-                    self.p1_action = action
-                    self.p1_ready = True
+                self.p1_action = action
+                self.p1_ready = True
             elif player == "2" and self.p2_ready is False:
-                if action == "grenade":
-                    # is_hit = queue_greande_hit_or_miss.get()
-                    # For Testing
-                    is_hit = "t"
-                    if is_hit == "t":
-                        hit_action = f"1 hit_G"
-                        self.game_state.update_players(hit_action)
-                        print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
-                    self.p2_action = action
-                    self.p2_ready = True
-                else:
-                    self.p2_action = action
-                    self.p2_ready = True
+                self.p2_action = action
+                self.p2_ready = True
             else:
                 print(f"Player 1 action: {self.p1_action}, Player 1 status: {self.p1_ready}")
                 print(f"Player 2 action: {self.p2_action}, Player 2 status: {self.p2_ready}")
@@ -434,24 +416,52 @@ class GameMechanics():
             '''
             if logout need to make sure game ends! Viz job. Ext Comms can make program sleep.
             '''
+
             self.game_state.update_players(curr_action)
             print(f"[GAME MECHANICS] Player states updated with {curr_action} :)")
             self.game_state_in_dict = self.game_state.get_dict()               
 
             if self.p1_ready and self.p2_ready:
+
+                if self.p1_action == "grenade":
+                    # is_hit = queue_greande_hit_or_miss.get()
+                    is_hit = "f"
+                    if is_hit == "t":
+                        hit_action = f"2 hit_G"
+                        print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
+                        self.game_state_in_dict = self.game_state.get_dict()
+                        
+                if self.p2_action == "grenade":
+                    # is_hit = queue_greande_hit_or_miss.get()
+                    is_hit = "f"
+                    if is_hit == "t":
+                        hit_action = f"1 hit_G"
+                        self.game_state.update_players(hit_action)
+                        print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
+                        self.game_state_in_dict = self.game_state.get_dict()
+
                 if self.game_state_in_dict["p1"]["action"] == "hit_G" or self.game_state_in_dict["p1"]["action"] == "hit":
                     self.game_state_in_dict["p1"]["action"] = self.p1_action
                 if self.game_state_in_dict["p2"]["action"] == "hit_G" or self.game_state_in_dict["p2"]["action"] == "hit":
                     self.game_state_in_dict["p2"]["action"] = self.p2_action
 
-                queue_eval_client.put(self.game_state_in_dict)
+                # queue_eval_client.put(self.game_state_in_dict)
+
                 self.p1_ready = False
                 self.p2_ready = False
-                self.block1 = False
-                self.block2 = False
+                while queue_ai.empty() == False:
+                    queue_ai.get()
+                while queue_game_state.empty() == False:
+                    queue_game_state.get()
+                while queue_visualizer.empty() == False:
+                    queue_visualizer.get()
+                while queue_greande_hit_or_miss.empty() == False:
+                    queue_greande_hit_or_miss.get()
+                # while queue_eval_client.empty() == False:
+                    # queue_eval_client.clear()
 
-                ground_truth = queue_ground_truth.get()
-
+                # ground_truth = queue_ground_truth.get()
+                '''
                 if ground_truth['p1']['hp'] != (self.game_state.get_dict())['p1']['hp'] or ground_truth['p1']['action'] != (self.game_state.get_dict())['p1']['action'] or ground_truth['p1']['bullets'] != (self.game_state.get_dict())['p1']['bullets'] or ground_truth['p1']['grenades'] != (self.game_state.get_dict())['p1']['grenades'] or ground_truth['p1']['shield_health'] != (self.game_state.get_dict())['p1']['shield_health'] or ground_truth['p1']['num_deaths'] != (self.game_state.get_dict())['p1']['num_deaths'] or ground_truth['p1']['num_shield'] != (self.game_state.get_dict())['p1']['num_shield'] or ground_truth['p2']['hp'] != (self.game_state.get_dict())['p2']['hp'] or ground_truth['p2']['action'] != (self.game_state.get_dict())['p2']['action'] or ground_truth['p2']['bullets'] != (self.game_state.get_dict())['p2']['bullets'] or ground_truth['p2']['grenades'] != (self.game_state.get_dict())['p2']['grenades'] or ground_truth['p2']['shield_health'] != (self.game_state.get_dict())['p2']['shield_health'] or ground_truth['p2']['num_deaths'] != (self.game_state.get_dict())['p2']['num_deaths'] or ground_truth['p2']['num_shield'] != (self.game_state.get_dict())['p2']['num_shield']:
                     
                     print("Predicted game state differs from the ground truth!")
@@ -471,7 +481,7 @@ class GameMechanics():
                     self.game_state.player_2.shield_health = ground_truth['p2']['shield_health']
                     self.game_state.player_2.num_deaths = ground_truth['p2']['num_deaths']
                     self.game_state.player_2.num_shield = ground_truth['p2']['num_shield']
-            
+                '''
             # Clear the other player's action
             if player == '1':
                 self.game_state_in_dict['p2']['action'] = 'none'
@@ -480,7 +490,7 @@ class GameMechanics():
             
             queue_visualizer.put(self.game_state_in_dict)
 
-
+'''
 class EvalClient():
     def __init__(self):
         self.server_ip_address = "localhost" # "137.132.92.184"
@@ -563,26 +573,29 @@ class EvalClient():
                     queue_ground_truth.put(ground_truth_in_dict)
 
                     break
+'''
 
 class Visualizer():
     def __init__(self):
-        # mqtt.eclipseprojects.io
-        #self.mqttBroker ="mqtt.eclipseprojects.io"
         self.mqttBroker = "broker.hivemq.com"
+        # self.mqttBroker = "18.143.111.203"
 
         self.publisher = mqtt.Client("Pub")
         self.publisher.connect(self.mqttBroker, 1883, 60)
+        
+        # self.publisher.on_message = self.on_message
+        # self.publisher.loop_start()
+        # self.publisher.subscribe("B12cNwWz/VisualizerReply")
         self.subscriber = mqtt.Client("Sub")
         self.subscriber.connect(self.mqttBroker, 1883, 60)
+        
         self.greande_action = 'g'
         self.has_received = False
-
 
     def on_message(self, client, userdata, message): #put queue into userdata
         grenade_hit = str(message.payload.decode("utf-8"))
         if grenade_hit is not None:
             self.has_received = True
-        print(grenade_hit)
         print(f'{Fore.RED}[VISUALIZER HAS RESPONDED GRENADE HIT] {grenade_hit}{Style.RESET_ALL}')
         
         queue_greande_hit_or_miss.put(grenade_hit)
@@ -601,40 +614,33 @@ class Visualizer():
         if self.has_received == True:
             self.subscriber.loop_stop()
 
-    # recalibrated_result = queue_visualizer_recalibration.get()
-    # print(f'[VISUALIZER HAS RECEIVED RECALIBRATED RESULT] {recalibrated_result}')
-
 
 relay = Relay()
 ai = AI()
 game_mechanics = GameMechanics()
-eval_client = EvalClient()
+# eval_client = EvalClient()
 visualizer = Visualizer()
 
 t1 = threading.Thread(target=relay.run, args=())
 t2 = threading.Thread(target=ai.run, args=())
 t3 = threading.Thread(target=game_mechanics.run, args=())
-t4 = threading.Thread(target=eval_client.run, args=())
+# t4 = threading.Thread(target=eval_client.run, args=())
 t5 = threading.Thread(target=visualizer.speak, args=())
 t6 = threading.Thread(target=visualizer.listen, args=())
-# t7 = threading.Thread(target=padd, args=())
 
-# ol = Overlay('design_1_wrapper.bit', download = False)
-# dma = ol.axi_dma_0
+ol = Overlay('design_1_wrapper.bit')
+dma = ol.axi_dma_0
 
 t1.start()
 t2.start()
 t3.start()
-t4.start()
+# t4.start()
 t5.start()
 t6.start()
-# t7.start()
-
 
 t1.join()
 t2.join()
 t3.join()
-t4.join()
+# t4.join()
 t5.join()
 t6.join()
-# t7.join()
