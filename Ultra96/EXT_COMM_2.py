@@ -30,13 +30,13 @@ queue_ai = queue.Queue() # Relay -> AI (sensor readings: str)
 queue_game_state = queue.Queue() # AI -> GameMechanics (greande_hit_or_miss: bool, non_grenade_action: str)
 queue_visualizer = queue.Queue() # AI -> Viz ("grenade": str), GM -> Viz (game_state: dict)
 queue_greande_hit_or_miss = queue.Queue() # Viz -> AI (grenade_hit_or_miss: bool)
-# queue_eval_client = queue.Queue() # GM -> EvalClient (game_state: dict)
+queue_eval_client = queue.Queue() # GM -> EvalClient (game_state: dict)
 queue_ground_truth = queue.Queue()
 
 class Relay():
     def __init__(self):
         self.server_ip_address = 'localhost'
-        self.listening_port = 4002
+        self.listening_port = int(input("Port:"))
         self.address = ('', self.listening_port)
         self.header = 64
         self.format = 'utf-8'
@@ -90,7 +90,7 @@ class AI():
     def padder1(self):
         if len(self.x1) != 50:
             print("Packet Not 50 for Player1")
-            queue_visualizer.put("bdgun1")
+            queue_visualizer.put("redo1")
             self.x1.clear()
             self.y1.clear()
             self.z1.clear()
@@ -101,7 +101,7 @@ class AI():
     def padder2(self):
         if len(self.x2) != 50:
             print("Packet Not 50 for Player2")
-            queue_visualizer.put("bdgun2")
+            queue_visualizer.put("redo2")
             self.x2.clear()
             self.y2.clear()
             self.z2.clear()
@@ -185,8 +185,6 @@ class AI():
             return "reload"
         elif output_buffer[0] == 4:
             return "logout"
-        elif output_buffer[0] == 5:
-            return "none"
         else:
             return "none"
 
@@ -266,8 +264,6 @@ class AI():
             return "reload"
         elif output_buffer[0] == 4:
             return "logout"
-        elif output_buffer[0] == 5:
-            return "none"
         else:
             return "none"
 
@@ -275,7 +271,7 @@ class AI():
         while True:
             sensor_reading = queue_ai.get()
             unpacked_sensor_reading = unpack('<b''b''6h''b''2h''b',  sensor_reading)
-            print(f"AI HAS RECEIVED SENSOR READING {unpacked_sensor_reading}")
+            # print(f"AI HAS RECEIVED SENSOR READING {unpacked_sensor_reading}")
 
             # Updated with Player ID 
             if len(unpacked_sensor_reading) != 12:
@@ -299,21 +295,35 @@ class AI():
 
             elif unpacked_sensor_reading[0] == 68: # Disconnected
                 if player == 1:
-                    queue_visualizer.put("bdgun1")
-                    self.x1.clear()
-                    self.y1.clear()
-                    self.z1.clear()
-                    self.gx1.clear()
-                    self.gy1.clear()
-                    self.gz1.clear()
+
+                    if unpacked_sensor_reading[2] == 2: #IMU
+                        queue_visualizer.put("bdglove1")
+                        self.x1.clear()
+                        self.y1.clear()
+                        self.z1.clear()
+                        self.gx1.clear()
+                        self.gy1.clear()
+                        self.gz1.clear()
+                    elif unpacked_sensor_reading[2] == 1: #GUN
+                        queue_visualizer.put("bdgun1")
+                    elif unpacked_sensor_reading[2] == 3: #VEST
+                        queue_visualizer.put("bdvest1")
+
                 elif player == 2:
-                    queue_visualizer.put("bdgun2")
-                    self.x2.clear()
-                    self.y2.clear()
-                    self.z2.clear()
-                    self.gx2.clear()
-                    self.gy2.clear()
-                    self.gz2.clear()
+
+                    if unpacked_sensor_reading[2] == 2: #IMU
+                        queue_visualizer.put("bdglove2")
+                        self.x2.clear()
+                        self.y2.clear()
+                        self.z2.clear()
+                        self.gx2.clear()
+                        self.gy2.clear()
+                        self.gz2.clear()
+                    elif unpacked_sensor_reading[2] == 1: #GUN
+                        queue_visualizer.put("bdgun2")
+                    elif unpacked_sensor_reading[2] == 3: #VEST
+                        queue_visualizer.put("bdvest2")
+
 
             elif unpacked_sensor_reading[0] == 67: # Connected
                 if player == 1:
@@ -326,7 +336,7 @@ class AI():
                 # Modify the positions as added a new byte to indicate player
                 if player == 1:
                     if len(self.x1) == 1:
-                        delay_IMU1 = Timer(0.5, self.padder1, args=())
+                        delay_IMU1 = Timer(3.0, self.padder1, args=())
                         delay_IMU1.daemon = True
                         delay_IMU1.start()
                     self.x1.append(unpacked_sensor_reading[2]) 
@@ -337,7 +347,7 @@ class AI():
                     self.gz1.append(unpacked_sensor_reading[7])
                 elif player == 2:
                     if len(self.x2) == 1:
-                        delay_IMU2 = Timer(0.5, self.padder2, args=())
+                        delay_IMU2 = Timer(3.0, self.padder2, args=())
                         delay_IMU2.daemon = True
                         delay_IMU2.start()
                     self.x2.append(unpacked_sensor_reading[2]) 
@@ -345,10 +355,21 @@ class AI():
                     self.z2.append(unpacked_sensor_reading[4]) 
                     self.gx2.append(unpacked_sensor_reading[5]) 
                     self.gy2.append(unpacked_sensor_reading[6])
-                    self.gz2.append(unpacked_sensor_reading[6])
+                    self.gz2.append(unpacked_sensor_reading[7])
 
                 if (len(self.x1) == 50):
                     delay_IMU1.cancel()
+                    # For Testing
+                    # if self.x1[0] == 0:
+                    #     action = "reload"
+                    # elif self.x1[0] == 1:
+                    #     action = "grenade"
+                    # elif self.x1[0] == 2:
+                    #     action = "shield"
+                    # elif self.x1[0] == 3:
+                    #     action = "logout"
+                    # else:
+                    #     action = "none"
                     action = self.ai()
 
                     self.x1.clear()
@@ -363,10 +384,22 @@ class AI():
                         print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
                         queue_game_state.put(pred_action)
                     else:
-                        print("Action is none")
+                        queue_visualizer.put("redo1")
+                        print("Player 1 action is none")
 
                 if (len(self.x2) == 50):
                     delay_IMU2.cancel()
+                    # For Testing
+                    # if self.x2[0] == 0:
+                    #     action = "reload"
+                    # elif self.x2[0] == 1:
+                    #     action = "grenade"
+                    # elif self.x2[0] == 2:
+                    #     action = "shield"
+                    # elif self.x2[0] == 3:
+                    #     action = "logout"
+                    # else:
+                    #     action = "none"
                     action = self.ai2()
                     
                     self.x2.clear()
@@ -381,7 +414,8 @@ class AI():
                         print(f'{Fore.MAGENTA}[AI CLASSIFICATION] {pred_action}{Style.RESET_ALL}')
                         queue_game_state.put(pred_action)
                     else: 
-                        print("Action is none")
+                        queue_visualizer.put("redo2")
+                        print("Player 2 action is none")
 
 
 class GameMechanics():
@@ -400,7 +434,7 @@ class GameMechanics():
             # Added player ID
             player , action = curr_action.split(" ")
 
-            if action == "hit" or action == "hit_G":
+            if action == "hit":
                 print(curr_action)
             elif player == "1" and self.p1_ready is False:
                 self.p1_action = action
@@ -420,24 +454,28 @@ class GameMechanics():
             self.game_state.update_players(curr_action)
             print(f"[GAME MECHANICS] Player states updated with {curr_action} :)")
             self.game_state_in_dict = self.game_state.get_dict()               
-
+            
             if self.p1_ready and self.p2_ready:
 
                 if self.p1_action == "grenade":
-                    # is_hit = queue_greande_hit_or_miss.get()
-                    is_hit = "f"
+                    queue_visualizer.put("g")
+                    is_hit = queue_greande_hit_or_miss.get()
+                    # For Testing
+                    # is_hit = "t"
                     if is_hit == "t":
                         hit_action = f"2 hit_G"
                         print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
                         self.game_state_in_dict = self.game_state.get_dict()
                         
                 if self.p2_action == "grenade":
-                    # is_hit = queue_greande_hit_or_miss.get()
-                    is_hit = "f"
-                    if is_hit == "t":
-                        hit_action = f"1 hit_G"
-                        self.game_state.update_players(hit_action)
-                        print(f"[GAME MECHANICS] Player states updated with {hit_action} :)")
+                    queue_visualizer.put("g")
+                    is_hit2 = queue_greande_hit_or_miss.get()
+                    # For Testing
+                    # is_hit2 = "t"
+                    if is_hit2 == "t":
+                        hit_action2 = f"1 hit_G"
+                        self.game_state.update_players(hit_action2)
+                        print(f"[GAME MECHANICS] Player states updated with {hit_action2} :)")
                         self.game_state_in_dict = self.game_state.get_dict()
 
                 if self.game_state_in_dict["p1"]["action"] == "hit_G" or self.game_state_in_dict["p1"]["action"] == "hit":
@@ -445,52 +483,94 @@ class GameMechanics():
                 if self.game_state_in_dict["p2"]["action"] == "hit_G" or self.game_state_in_dict["p2"]["action"] == "hit":
                     self.game_state_in_dict["p2"]["action"] = self.p2_action
 
-                # queue_eval_client.put(self.game_state_in_dict)
+                queue_eval_client.put(self.game_state_in_dict)
 
                 self.p1_ready = False
                 self.p2_ready = False
+                
+                # ground_truth = queue_ground_truth.get()
+                
                 while queue_ai.empty() == False:
                     queue_ai.get()
                 while queue_game_state.empty() == False:
                     queue_game_state.get()
-                while queue_visualizer.empty() == False:
-                    queue_visualizer.get()
                 while queue_greande_hit_or_miss.empty() == False:
                     queue_greande_hit_or_miss.get()
-                # while queue_eval_client.empty() == False:
-                    # queue_eval_client.clear()
+                while queue_eval_client.empty() == False:
+                    queue_eval_client.get()
 
-                # ground_truth = queue_ground_truth.get()
-                '''
-                if ground_truth['p1']['hp'] != (self.game_state.get_dict())['p1']['hp'] or ground_truth['p1']['action'] != (self.game_state.get_dict())['p1']['action'] or ground_truth['p1']['bullets'] != (self.game_state.get_dict())['p1']['bullets'] or ground_truth['p1']['grenades'] != (self.game_state.get_dict())['p1']['grenades'] or ground_truth['p1']['shield_health'] != (self.game_state.get_dict())['p1']['shield_health'] or ground_truth['p1']['num_deaths'] != (self.game_state.get_dict())['p1']['num_deaths'] or ground_truth['p1']['num_shield'] != (self.game_state.get_dict())['p1']['num_shield'] or ground_truth['p2']['hp'] != (self.game_state.get_dict())['p2']['hp'] or ground_truth['p2']['action'] != (self.game_state.get_dict())['p2']['action'] or ground_truth['p2']['bullets'] != (self.game_state.get_dict())['p2']['bullets'] or ground_truth['p2']['grenades'] != (self.game_state.get_dict())['p2']['grenades'] or ground_truth['p2']['shield_health'] != (self.game_state.get_dict())['p2']['shield_health'] or ground_truth['p2']['num_deaths'] != (self.game_state.get_dict())['p2']['num_deaths'] or ground_truth['p2']['num_shield'] != (self.game_state.get_dict())['p2']['num_shield']:
-                    
-                    print("Predicted game state differs from the ground truth!")
+                # if ground_truth['p1']['hp'] != (self.game_state.get_dict())['p1']['hp']:
+                #     print("hp1")
+                # if ground_truth['p1']['action'] != (self.game_state.get_dict())['p1']['action']:
+                #     print("a1")
+                # if ground_truth['p1']['bullets'] != (self.game_state.get_dict())['p1']['bullets']:
+                #     print("b1")
+                # if ground_truth['p1']['grenades'] != (self.game_state.get_dict())['p1']['grenades']:
+                #     print("g1")
+                # if ground_truth['p1']['shield_health'] != (self.game_state.get_dict())['p1']['shield_health']:
+                #     print("sh1")
+                # if ground_truth['p1']['num_deaths'] != (self.game_state.get_dict())['p1']['num_deaths']:
+                #     print("nd1")
+                # if ground_truth['p1']['num_shield'] != (self.game_state.get_dict())['p1']['num_shield']:
+                #     print("ns1")
+                # if ground_truth['p2']['hp'] != (self.game_state.get_dict())['p2']['hp']:
+                #     print("hp2")
+                # if ground_truth['p2']['action'] != (self.game_state.get_dict())['p2']['action']:
+                #     print("a2")
+                # if ground_truth['p2']['bullets'] != (self.game_state.get_dict())['p2']['bullets']:
+                #     print("b2")
+                # if ground_truth['p2']['grenades'] != (self.game_state.get_dict())['p2']['grenades']:
+                #     print("g2")
+                # if ground_truth['p2']['shield_health'] != (self.game_state.get_dict())['p2']['shield_health']:
+                #     print("sh2")
+                # if ground_truth['p2']['num_deaths'] != (self.game_state.get_dict())['p2']['num_deaths']:
+                #     print("nd2")
+                # if ground_truth['p2']['num_shield'] != (self.game_state.get_dict())['p2']['num_shield']:
+                #     print("ns2")
 
-                    self.game_state.player_1.hp = ground_truth['p1']['hp']
-                    self.game_state.player_1.action = ground_truth['p1']['action']
-                    self.game_state.player_1.bullets = ground_truth['p1']['bullets']
-                    self.game_state.player_1.grenades = ground_truth['p1']['grenades']
-                    self.game_state.player_1.shield_health = ground_truth['p1']['shield_health']
-                    self.game_state.player_1.num_deaths = ground_truth['p1']['num_deaths']
-                    self.game_state.player_1.num_shield = ground_truth['p1']['num_shield']
+                # if ground_truth['p1']['hp'] != (self.game_state.get_dict())['p1']['hp'] or \
+                # ground_truth['p1']['action'] != (self.game_state.get_dict())['p1']['action'] or \
+                # ground_truth['p1']['bullets'] != (self.game_state.get_dict())['p1']['bullets'] or \
+                # ground_truth['p1']['grenades'] != (self.game_state.get_dict())['p1']['grenades'] or \
+                # ground_truth['p1']['shield_health'] != (self.game_state.get_dict())['p1']['shield_health'] or \
+                # ground_truth['p1']['num_deaths'] != (self.game_state.get_dict())['p1']['num_deaths'] or \
+                # ground_truth['p1']['num_shield'] != (self.game_state.get_dict())['p1']['num_shield'] or \
+                # ground_truth['p2']['hp'] != (self.game_state.get_dict())['p2']['hp'] or \
+                # ground_truth['p2']['action'] != (self.game_state.get_dict())['p2']['action'] or \
+                # ground_truth['p2']['bullets'] != (self.game_state.get_dict())['p2']['bullets'] or \
+                # ground_truth['p2']['grenades'] != (self.game_state.get_dict())['p2']['grenades'] or \
+                # ground_truth['p2']['shield_health'] != (self.game_state.get_dict())['p2']['shield_health'] or \
+                # ground_truth['p2']['num_deaths'] != (self.game_state.get_dict())['p2']['num_deaths'] or \
+                # ground_truth['p2']['num_shield'] != (self.game_state.get_dict())['p2']['num_shield']:
 
-                    self.game_state.player_2.hp = ground_truth['p2']['hp']
-                    self.game_state.player_2.action = ground_truth['p2']['action']
-                    self.game_state.player_2.bullets = ground_truth['p2']['bullets']
-                    self.game_state.player_2.grenades = ground_truth['p2']['grenades']
-                    self.game_state.player_2.shield_health = ground_truth['p2']['shield_health']
-                    self.game_state.player_2.num_deaths = ground_truth['p2']['num_deaths']
-                    self.game_state.player_2.num_shield = ground_truth['p2']['num_shield']
-                '''
+                #     print("Predicted game state differs from the ground truth!")
+
+                #     self.game_state.player_1.hp = ground_truth['p1']['hp']
+                #     self.game_state.player_1.action = ground_truth['p1']['action']
+                #     self.game_state.player_1.bullets = ground_truth['p1']['bullets']
+                #     self.game_state.player_1.grenades = ground_truth['p1']['grenades']
+                #     self.game_state.player_1.shield_health = ground_truth['p1']['shield_health']
+                #     self.game_state.player_1.num_deaths = ground_truth['p1']['num_deaths']
+                #     self.game_state.player_1.num_shield = ground_truth['p1']['num_shield']
+
+                #     self.game_state.player_2.hp = ground_truth['p2']['hp']
+                #     self.game_state.player_2.action = ground_truth['p2']['action']
+                #     self.game_state.player_2.bullets = ground_truth['p2']['bullets']
+                #     self.game_state.player_2.grenades = ground_truth['p2']['grenades']
+                #     self.game_state.player_2.shield_health = ground_truth['p2']['shield_health']
+                #     self.game_state.player_2.num_deaths = ground_truth['p2']['num_deaths']
+                #     self.game_state.player_2.num_shield = ground_truth['p2']['num_shield']
+                
             # Clear the other player's action
+            copy_dict = self.game_state_in_dict.copy()
             if player == '1':
-                self.game_state_in_dict['p2']['action'] = 'none'
+                copy_dict['p2']['action'] = 'none'
             elif player == '2':
-                self.game_state_in_dict['p1']['action'] = 'none'
+                copy_dict['p1']['action'] = 'none'
             
-            queue_visualizer.put(self.game_state_in_dict)
+            queue_visualizer.put(copy_dict)
 
-'''
+
 class EvalClient():
     def __init__(self):
         self.server_ip_address = "localhost" # "137.132.92.184"
@@ -573,12 +653,12 @@ class EvalClient():
                     queue_ground_truth.put(ground_truth_in_dict)
 
                     break
-'''
+
 
 class Visualizer():
     def __init__(self):
-        self.mqttBroker = "broker.hivemq.com"
-        # self.mqttBroker = "18.143.111.203"
+        # self.mqttBroker = "broker.hivemq.com"
+        self.mqttBroker = "18.143.111.203"
 
         self.publisher = mqtt.Client("Pub")
         self.publisher.connect(self.mqttBroker, 1883, 60)
@@ -592,7 +672,7 @@ class Visualizer():
         self.greande_action = 'g'
         self.has_received = False
 
-    def on_message(self, client, userdata, message): #put queue into userdata
+    def on_message(self, client, userdata, message):
         grenade_hit = str(message.payload.decode("utf-8"))
         if grenade_hit is not None:
             self.has_received = True
@@ -618,13 +698,13 @@ class Visualizer():
 relay = Relay()
 ai = AI()
 game_mechanics = GameMechanics()
-# eval_client = EvalClient()
+eval_client = EvalClient()
 visualizer = Visualizer()
 
 t1 = threading.Thread(target=relay.run, args=())
 t2 = threading.Thread(target=ai.run, args=())
 t3 = threading.Thread(target=game_mechanics.run, args=())
-# t4 = threading.Thread(target=eval_client.run, args=())
+t4 = threading.Thread(target=eval_client.run, args=())
 t5 = threading.Thread(target=visualizer.speak, args=())
 t6 = threading.Thread(target=visualizer.listen, args=())
 
@@ -634,13 +714,13 @@ dma = ol.axi_dma_0
 t1.start()
 t2.start()
 t3.start()
-# t4.start()
+t4.start()
 t5.start()
 t6.start()
 
 t1.join()
 t2.join()
 t3.join()
-# t4.join()
+t4.join()
 t5.join()
 t6.join()

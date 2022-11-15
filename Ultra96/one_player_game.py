@@ -440,7 +440,7 @@ t5 = threading.Thread(target=visualizer.speak, args=())
 # t6 = threading.Thread(target=visualizer.listen, args=())
 t7 = threading.Thread(target=padd, args=())
 
-ol = Overlay('design_1_wrapper.bit', download = false)
+ol = Overlay('design_1_wrapper.bit')
 dma = ol.axi_dma_0
 
 t1.start()
@@ -450,7 +450,6 @@ t4.start()
 t5.start()
 # t6.start()
 t7.start()
-
 
 t1.join()
 t2.join()

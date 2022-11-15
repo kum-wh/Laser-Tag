@@ -4,6 +4,15 @@
 #include <Wire.h>
 #include <Ewma.h>
 
+#define PLAYER_NUM 1 // USB down = 1, USB side = 2
+
+#define GLOVE_BEETLE 3
+#define GUN_BEETLE 4
+#define VEST_BEETLE 5
+
+#define ACK_TIMEOUT 100
+#define DATA_INTERVAL 45
+
 const uint8_t IMU_ADDR = 0x68; // AD0 is logic low on the PCB
 const uint8_t ACC_REG = 0x3B;
 const uint8_t GYRO_REG = 0x43;
@@ -30,10 +39,23 @@ Ewma gyroXFilter(0.05), gyroYFilter(0.05), gyroZFilter(0.05);
 int16_t accXFiltered, accYFiltered, accZFiltered;
 int16_t gyroXFiltered, gyroYFiltered, gyroZFiltered;
 
-const int16_t accThreshold = 75;
-const int16_t gyroThreshold = 80;
-int numSent = -1;
-const int numToSend = 350;
+volatile long prevTime;
+bool receivedFirstHS = false;
+bool handshakeSuccess = false;
+
+struct IMUPacket {
+  char packetID = 'W';
+  uint8_t pn = PLAYER_NUM;
+  int16_t accelData[3];
+  int16_t gyroData[3];
+  char padding[6] = {0};
+};
+
+struct ACKPacket {
+  char packetID = 'A';
+  uint8_t pn = PLAYER_NUM;
+  char padding[18] = {0};
+};
 
 void setup() {
   Serial.begin(115200);
@@ -47,9 +69,58 @@ void setup() {
   
   delay(100); // Wait for sensor to stabilize
   calculateErrors();
+  
+  prevTime = millis();
 }
 
 void loop() {
+  if (receivedFirstHS && !handshakeSuccess) { 
+      long currTime = millis();
+      if(currTime - prevTime >= ACK_TIMEOUT) { 
+        sendACKPacket();
+        prevTime = currTime;
+      }
+  } else if (handshakeSuccess) {
+      long currTime = millis();
+      if(currTime - prevTime >= DATA_INTERVAL) {
+        getIMUData();
+        sendIMUPacket();
+        prevTime = currTime;
+      }
+  }
+}
+
+void serialEvent() {
+  int msg = Serial.read();
+  if (msg == 'H') {
+      receivedFirstHS = true;
+      handshakeSuccess = false;
+  } else if (msg == 'A') {  
+      handshakeSuccess = true;
+  } 
+}
+
+void sendIMUPacket() {
+  IMUPacket packet;
+  packet.accelData[0] = accXFiltered;
+  packet.accelData[1] = accYFiltered;
+  packet.accelData[2] = accZFiltered; 
+  packet.gyroData[0] = gyroXFiltered; 
+  packet.gyroData[1] = gyroYFiltered;
+  packet.gyroData[2] = gyroZFiltered;
+
+  int len = sizeof(packet);
+  if (Serial.availableForWrite() > len) {
+    Serial.write((byte*)&packet, len);
+  } 
+}
+
+void sendACKPacket() {
+  ACKPacket packet;
+  Serial.write((byte*)&packet, sizeof(packet));
+}
+
+void getIMUData() {
   while (i2cRead(ACC_REG, i2cData, 6));
   accX = (int16_t)((i2cData[0] << 8) | i2cData[1]) * ACC_SCALE - accXErr;
   accY = (int16_t)((i2cData[2] << 8) | i2cData[3]) * ACC_SCALE - accYErr;
@@ -67,43 +138,6 @@ void loop() {
   gyroXFiltered = gyroXFilter.filter(gyroX);
   gyroYFiltered = gyroYFilter.filter(gyroY);
   gyroZFiltered = gyroZFilter.filter(gyroZ);
-
-  if (accXFiltered > accThreshold || accXFiltered < -accThreshold ||
-      accYFiltered > accThreshold || accYFiltered < -accThreshold ||
-      accZFiltered > accThreshold || accZFiltered < -accThreshold ||
-      gyroXFiltered > gyroThreshold || gyroXFiltered < -gyroThreshold ||
-      gyroYFiltered > gyroThreshold || gyroYFiltered < -gyroThreshold ||
-      gyroZFiltered > gyroThreshold || gyroZFiltered < -gyroThreshold) {
-    if (numSent < 0) {
-      //Serial.println(F("Start of action"));
-      numSent = 0;
-    }
-  }
-
-  if (numSent >= 0) {
-  #if 1
-    Serial.print("count:"); Serial.print(numSent);
-    Serial.print(",accXF:"); Serial.print(accXFiltered);
-    Serial.print(",accYF:"); Serial.print(accYFiltered);
-    Serial.print(",accZF:"); Serial.print(accZFiltered);
-//    Serial.println();
-  #endif
-  
-  #if 1
-    Serial.print(",gyroXF:"); Serial.print(gyroXFiltered);
-    Serial.print(",gyroYF:"); Serial.print(gyroYFiltered);
-    Serial.print(",gyroZF:"); Serial.print(gyroZFiltered);
-    Serial.println();
-  #endif
-
-    // send
-    numSent++;
-
-    if(numSent == numToSend) {
-      numSent = -1;
-    }
-  }
-  delay(10);
 }
 
 void calculateErrors() {
@@ -128,8 +162,6 @@ void calculateErrors() {
     gyroXErr += gyroX;
     gyroYErr += gyroY;
     gyroZErr += gyroZ;
-
-    delay(10);
   }
 
   accXErr /= numSamples;
@@ -140,7 +172,7 @@ void calculateErrors() {
   gyroYErr /= numSamples;
   gyroZErr /= numSamples;
 
-#if 1
+#if 0
   Serial.println(accXErr);
   Serial.println(accYErr);
   Serial.println(accZErr);
@@ -160,10 +192,6 @@ uint8_t i2cWrite(uint8_t registerAddress, uint8_t *data, uint8_t length, bool se
   Wire.write(registerAddress);
   Wire.write(data, length);
   uint8_t rcode = Wire.endTransmission(sendStop); // Returns 0 on success
-  if (rcode) {
-    Serial.print(F("i2cWrite failed: "));
-    Serial.println(rcode);
-  }
   return rcode; // See: http://arduino.cc/en/Reference/WireEndTransmission
 }
 
@@ -173,8 +201,6 @@ uint8_t i2cRead(uint8_t registerAddress, uint8_t *data, uint8_t nbytes) {
   Wire.write(registerAddress);
   uint8_t rcode = Wire.endTransmission(false); // Don't release the bus
   if (rcode) {
-    Serial.print(F("i2cRead failed: "));
-    Serial.println(rcode);
     return rcode; // See: http://arduino.cc/en/Reference/WireEndTransmission
   }
   Wire.requestFrom(IMU_ADDR, nbytes, (uint8_t)true); // Send a repeated start and then release the bus after reading
@@ -187,7 +213,7 @@ uint8_t i2cRead(uint8_t registerAddress, uint8_t *data, uint8_t nbytes) {
       if (Wire.available())
         data[i] = Wire.read();
       else {
-        Serial.println(F("i2cRead timeout"));
+        // i2cRead timeout
         return 5; // This error value is not already taken by endTransmission
       }
     }

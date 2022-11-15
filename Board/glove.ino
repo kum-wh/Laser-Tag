@@ -4,7 +4,7 @@
 #include <Wire.h>
 #include <Ewma.h>
 
-#define PLAYER_NUM 1
+#define PLAYER_NUM 2 // USB down = 1, USB side = 2
 
 #define GLOVE_BEETLE 3
 #define GUN_BEETLE 4
@@ -38,6 +38,10 @@ Ewma gyroXFilter(0.05), gyroYFilter(0.05), gyroZFilter(0.05);
 
 int16_t accXFiltered, accYFiltered, accZFiltered;
 int16_t gyroXFiltered, gyroYFiltered, gyroZFiltered;
+
+const int16_t accThreshold = 60;
+int numSent = -1;
+const int numToSend = 50;
 
 volatile long prevTime;
 bool receivedFirstHS = false;
@@ -74,11 +78,6 @@ void setup() {
 }
 
 void loop() {
-//  long currTime = millis();
-//      if(currTime - prevTime >= DATA_INTERVAL) {
-//        getIMUData();
-//        prevTime = currTime;
-//      }
   if (receivedFirstHS && !handshakeSuccess) { 
       long currTime = millis();
       if(currTime - prevTime >= ACK_TIMEOUT) { 
@@ -86,11 +85,28 @@ void loop() {
         prevTime = currTime;
       }
   } else if (handshakeSuccess) {
-      long currTime = millis();
-      if(currTime - prevTime >= DATA_INTERVAL) {
-        getIMUData();
-        sendIMUPacket();
-        prevTime = currTime;
+      getIMUData();
+    
+      if (accXFiltered > accThreshold || accXFiltered < -accThreshold ||
+          accYFiltered > accThreshold || accYFiltered < -accThreshold ||
+          accZFiltered > accThreshold || accZFiltered < -accThreshold) {
+        if (numSent < 0) {
+          // start of action
+          numSent = 0;
+        }
+      }
+    
+      if (numSent >= 0) {    
+        long currTime = millis();
+        if(currTime - prevTime >= DATA_INTERVAL) {
+          sendIMUPacket();
+          prevTime = currTime;
+          numSent++;
+        }
+
+        if(numSent == numToSend) {
+          numSent = -1;
+        }
       }
   }
 }
@@ -116,7 +132,12 @@ void sendIMUPacket() {
 
   int len = sizeof(packet);
   if (Serial.availableForWrite() > len) {
+//    int bytesSent = 
     Serial.write((byte*)&packet, len);
+//    if (bytesSent != len) {
+//      Serial.print(bytesSent);
+//      Serial.println(" bytes sent only!");
+//    }
   } 
 }
 

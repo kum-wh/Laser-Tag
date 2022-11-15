@@ -5,10 +5,12 @@ from Helper import Actions
 
 class StateStaff(PlayerStateBase): # StateStaff inherits from PlayerStateBase
     # update the player statistics
-    def update(self, pos_self, pos_opponent, action_self, action_opponent, action_opponent_is_valid):
-        if self.action_is_valid(action_self):
-            self.action = action_self
-
+    def update(self,action_self2):
+        self.action = action_self2
+        if self.action_is_valid(action_self2):
+            action_self = action_self2
+        else:
+            action_self = "none"
         # check if the shield has to be reduced
         if self.shield_time > 0: # check if shield is being deployed
             if action_self == Actions.shield:

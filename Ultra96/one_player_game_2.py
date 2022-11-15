@@ -34,9 +34,7 @@ queue_game_state = queue.Queue() # AI -> GameMechanics (greande_hit_or_miss: boo
 queue_visualizer = queue.Queue() # AI -> Viz ("grenade": str), GM -> Viz (game_state: dict)
 queue_greande_hit_or_miss = queue.Queue() # Viz -> AI (grenade_hit_or_miss: bool)
 queue_eval_client = queue.Queue() # GM -> EvalClient (game_state: dict)
-
 queue_ground_truth = queue.Queue() # 
-#queue_visualizer_recalibration = queue.Queue() # 
 
 def padd():
     while True:
